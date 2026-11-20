@@ -43,15 +43,12 @@ static class CameraDiscovery {
                 if(BitConverter.ToUInt64(Block(read,actor+0x400,8),0)!=controller)continue;
                 byte[] pov=Block(read,actor+0xE00,0x64);
                 float fov=BitConverter.ToSingle(pov,0x60);if(!(fov>10&&fov<170))continue;
-                ulong root=BitConverter.ToUInt64(Block(read,actor+0x248,8),0);if(!Memory.Valid(root))continue;
-                byte[] origin=Block(read,root+0x280,24);
-                bool valid=true;double delta=0;
+                bool valid=true;
                 for(int i=0;i<3;i++) {
-                    double location=BitConverter.ToDouble(pov,0x10+i*8),relative=BitConverter.ToDouble(origin,i*8),rotation=BitConverter.ToDouble(pov,0x38+i*8);
-                    valid&=Finite(location)&&Finite(relative)&&Finite(rotation)&&Math.Abs(rotation)<=360;
-                    delta+=Math.Abs(location-relative);
+                    double location=BitConverter.ToDouble(pov,0x10+i*8),rotation=BitConverter.ToDouble(pov,0x38+i*8);
+                    valid&=Finite(location)&&Finite(rotation)&&Math.Abs(rotation)<=360;
                 }
-                if(!valid||delta>100)continue;
+                if(!valid)continue;
                 if(found!=0)return 0;found=actor;
             }catch(System.IO.IOException){}
         }
