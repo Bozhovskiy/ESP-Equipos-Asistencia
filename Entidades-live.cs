@@ -259,7 +259,7 @@ public static class Memory {
     public static void ReadArray(ulong address, byte[] bytes) {
         uint count=0;
         if (!Valid(address) || bytes.Length > 65536 || address + (ulong)bytes.Length >= 0x0000800000000000 || !MemProcFsHeaderProbe.ReadHeader(Context, Pid, address, bytes, out count) || count != bytes.Length) {
-            FailedReads++; throw new System.IO.IOException("Lectura incompleta o direccion fuera de limites: 0x"+address.ToString("X")+", "+count+"/"+bytes.Length+" bytes.");
+            FailedReads++; throw new System.IO.IOException("Incomplete read or address out of bounds: 0x"+address.ToString("X")+", "+count+"/"+bytes.Length+" bytes.");
         }
     }
     public static byte[] Bytes(ulong address, int size) { byte[] bytes = new byte[size]; ReadArray(address, bytes); return bytes; }
@@ -325,9 +325,9 @@ public static class EntityProgram {
                 if (!new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator)) throw new Exception("Falta elevacion UAC.");
                 if (!System.IO.File.Exists(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"DumpIt.dmp"))) throw new Exception("Falta DumpIt LIVEKD.");
                 context = MemProcFsHeaderProbe.Begin("dumpit");
-                if (context == IntPtr.Zero) throw new Exception("No se pudo iniciar MemProcFS.");
+                if (context == IntPtr.Zero) throw new Exception("Could not initialize MemProcFS.");
                 Memory.Context = context; Memory.Pid = MemProcFsHeaderProbe.FindGame(context);
-                if (Memory.Pid == 0) throw new Exception("No se encontro PioneerGame.exe.");
+                if (Memory.Pid == 0) throw new Exception("PioneerGame.exe was not found.");
                 Process.BaseAddress = MemProcFsHeaderProbe.GameBase(context,Memory.Pid);
                 ulong world = Memory.Read<ulong>(Memory.Read<ulong>(Process.BaseAddress + 0x10A22A98));
                 ulong level = Memory.Read<ulong>(world + 0x128);

@@ -26,7 +26,7 @@ static class HudLayout {
 }
 static class CameraDiscovery {
     static bool Finite(double value){return !double.IsNaN(value)&&!double.IsInfinity(value)&&Math.Abs(value)<100000000;}
-    static byte[] Block(Func<ulong,int,byte[]> read,ulong address,int size){byte[] bytes=read(address,size);if(bytes==null||bytes.Length<size)throw new System.IO.IOException("Lectura de camara parcial");return bytes;}
+    static byte[] Block(Func<ulong,int,byte[]> read,ulong address,int size){byte[] bytes=read(address,size);if(bytes==null||bytes.Length<size)throw new System.IO.IOException("Partial camera read");return bytes;}
     public static ulong FindUnique(IEnumerable<ulong> actors,ulong controller,Func<ulong,int,byte[]> read,Func<bool> stopping) {
         if(!Memory.Valid(controller))return 0;
         ulong found=0;var seen=new HashSet<ulong>();var clock=Stopwatch.StartNew();
@@ -54,12 +54,12 @@ static class CameraDiscovery {
 }
 sealed class EspFrame {
     public ulong World,LocalPawn;
-    public string TargetDataStatus="Sin perfil de objetivos validado";
+    public string TargetDataStatus="No validated target profile";
     public bool Valid;
     public long CapturedAt=Stopwatch.GetTimestamp();
     public DateTime AcquiredUtc=DateTime.UtcNow;
     public bool IsFresh(long now) {long elapsed=now-CapturedAt;return Valid&&elapsed>=0&&elapsed<=Stopwatch.Frequency/2;}
-    public string Status="Esperando lectura";
+    public string Status="Waiting for data";
     public double[] Location,Rotation;
     public float Fov;
     public float AspectRatio,DesiredFov;
@@ -72,8 +72,8 @@ sealed class EspFrame {
 // Each array header is rechecked before its pointers can affect discovery.
 static class SceneDiscovery {
     static byte[] Block(Func<ulong,int,byte[]> read,ulong address,int size){
-        if(!Memory.Valid(address))throw new System.IO.IOException("Direccion de escena invalida");
-        var bytes=read(address,size);if(bytes==null||bytes.Length!=size)throw new System.IO.IOException("Lectura de escena incompleta");return bytes;
+        if(!Memory.Valid(address))throw new System.IO.IOException("Invalid scene address");
+        var bytes=read(address,size);if(bytes==null||bytes.Length!=size)throw new System.IO.IOException("Incomplete scene read");return bytes;
     }
     static ulong Pointer(Func<ulong,int,byte[]> read,ulong address){return BitConverter.ToUInt64(Block(read,address,8),0);}
     static List<ulong> Pointers(Func<ulong,int,byte[]> read,ulong address,int limit,bool truncate=false){
@@ -86,7 +86,7 @@ static class SceneDiscovery {
     }
     public static List<ulong> CollectActors(ulong world,Func<ulong,int,byte[]> read,Func<bool> stopping){
         var actors=new List<ulong>();if(stopping())return actors;
-        ulong main=Reverse64(Pointer(read,world+0x118)^0x2BFF037800000000UL);if(!Memory.Valid(main))throw new System.IO.IOException("Esperando nivel principal");
+        ulong main=Reverse64(Pointer(read,world+0x118)^0x2BFF037800000000UL);if(!Memory.Valid(main))throw new System.IO.IOException("Waiting for persistent level");
         var levels=new List<ulong>{main};var seenLevels=new HashSet<ulong>{main};
         try{foreach(ulong level in Pointers(read,world+0x288,128))if(seenLevels.Add(level))levels.Add(level);}catch(System.IO.IOException){}
         var seen=new HashSet<ulong>();
@@ -134,7 +134,7 @@ sealed class EspReader {
     public long ReadCount;
     public double ReadMilliseconds,DiscoveryMilliseconds;
     public volatile EspFrame Frame=new EspFrame();
-    public volatile string Discovery="Sin explorar";
+    public volatile string Discovery="Not scanned";
     public volatile string LastError="";
     public int AxisConstraint=-1;
     ulong world,camera,controller,localPawn;
@@ -143,10 +143,18 @@ sealed class EspReader {
     readonly HashSet<ulong> states=new HashSet<ulong>();
     static bool Finite(double d) {return !double.IsNaN(d)&&!double.IsInfinity(d)&&Math.Abs(d)<100000000;}
     static double[] Triple(byte[] b,int o) {return new double[]{BitConverter.ToDouble(b,o),BitConverter.ToDouble(b,o+8),BitConverter.ToDouble(b,o+16)};}
+    static ulong Chain(ulong first,params ulong[] offsets){ulong value=Memory.Read<ulong>(Process.BaseAddress+first);foreach(ulong offset in offsets){if(!Memory.Valid(value))return 0;value=Memory.Read<ulong>(value+offset);}return Memory.Valid(value)?value:0;}
+    static ulong ResolveWorld(){
+        ulong value=Chain(0x108FEEC0,0xA0,0x250,0x160);if(Memory.Valid(value))return value;
+        value=Chain(0x109BB1C0,0xA0,0x248,0x148);if(Memory.Valid(value))return value;
+        ulong engine=Memory.Read<ulong>(Process.BaseAddress+0x104673E8);if(!Memory.Valid(engine))return 0;
+        for(ulong offset=8;offset<0x1800;offset+=8){try{ulong viewport=Memory.Read<ulong>(engine+offset);if(!Memory.Valid(viewport))continue;value=Memory.Read<ulong>(viewport+0x140);if(Memory.Valid(value))return value;}catch(System.IO.IOException){}}
+        return 0;
+    }
     void Refresh() {
         targetReader.Bind(Process.BaseAddress);
-        ulong nextWorld=Memory.Read<ulong>(Memory.Read<ulong>(Memory.Read<ulong>(Memory.Read<ulong>(Process.BaseAddress+0x108FEEC0)+0xA0)+0x250)+0x160);
-        if(!Memory.Valid(nextWorld)) throw new Exception("Esperando mundo");
+        ulong nextWorld=ResolveWorld();
+        if(!Memory.Valid(nextWorld)) throw new Exception("Waiting for world");
         world=nextWorld; camera=controller=localPawn=0;AxisConstraint=-1; players.Clear();practiceTurrets.Clear();states.Clear();
         var candidates=new List<ulong>();
         var actors=SceneDiscovery.CollectActors(world,Memory.Bytes,()=>Stop);
@@ -162,12 +170,12 @@ sealed class EspReader {
                 else if(name=="C_TurretEnemy_C")practiceTurrets.Add(actor);
             } catch(System.IO.IOException) {}
         }
-        Discovery="Actores="+actors.Count+" (niveles cargados); camaras="+cameras.Count+"; controladores="+controllers.Count+"; personajes="+candidates.Count+"; estados="+states.Count+"; torretas="+practiceTurrets.Count;
+        Discovery="Actors="+actors.Count+" (loaded levels); cameras="+cameras.Count+"; controllers="+controllers.Count+"; characters="+candidates.Count+"; states="+states.Count+"; turrets="+practiceTurrets.Count;
         controller=SceneDiscovery.FindLocalController(world,actors,controllers,Memory.Bytes);
-        Discovery+="; controlador local="+(controller!=0?"1":"0");
+        Discovery+="; local controller="+(controller!=0?"1":"0");
         if(controller==0) {ProcessDiagnosticRequest();return;}
         camera=CameraDiscovery.FindUnique(actors,controller,Memory.Bytes,()=>Stop);
-        Discovery+="; camara validada="+(camera!=0?"1":"0")+(cameras.Count==0&&camera!=0?" (propietario)":"");
+        Discovery+="; validated camera="+(camera!=0?"1":"0")+(cameras.Count==0&&camera!=0?" (owner)":"");
         if(camera==0){ProcessDiagnosticRequest();return;}
         if(Memory.Valid(controller)) localPawn=Memory.Read<ulong>(controller+0x438);
         foreach(ulong actor in candidates) {
@@ -290,10 +298,10 @@ sealed class EspReader {
     EspFrame ReadFrame() {
         var frame=new EspFrame();
         frame.TargetDataStatus=targetReader.Status;
-        if(!Memory.Valid(controller)) {frame.Status="Esperando controlador local";return frame;}
-        if(!Memory.Valid(camera)) {frame.Status="Esperando camara";return frame;}
+        if(!Memory.Valid(controller)) {frame.Status="Waiting for local controller";return frame;}
+        if(!Memory.Valid(camera)) {frame.Status="Waiting for camera";return frame;}
         localPawn=Memory.Read<ulong>(controller+0x438);
-        if(!Memory.Valid(localPawn)) {frame.Status="Esperando personaje local";return frame;}
+        if(!Memory.Valid(localPawn)) {frame.Status="Waiting for local character";return frame;}
         frame.World=world;frame.LocalPawn=localPawn;
         byte[] pov=Memory.Bytes(camera+0xDD0+0x10,0xA8);
         frame.Location=Triple(pov,8);frame.Rotation=Triple(pov,0x30);frame.Fov=BitConverter.ToSingle(pov,0x50);
@@ -326,8 +334,8 @@ sealed class EspReader {
                 if(distance<=500)frame.Practice.Add(new PracticePoint{Actor=actor,Position=position,Distance=distance,Name="Torreta"});
             }catch(System.IO.IOException error){frame.PracticeError=error.Message;}
         }
-        frame.Valid=true; frame.Status="ESP: "+frame.Players.Count+" jugadores leidos | F10: cerrar";
-        if(PracticeCalibration)frame.Status="ESP: "+frame.Players.Count+" jugadores | "+frame.Practice.Count+" torretas | F10: cerrar";
+        frame.Valid=true; frame.Status="ESP: "+frame.Players.Count+" players read | F10: close";
+        if(PracticeCalibration)frame.Status="ESP: "+frame.Players.Count+" players | "+frame.Practice.Count+" turrets | F10: close";
         return frame;
     }
     public void Run() {
@@ -372,7 +380,7 @@ sealed class EspWindow:Form {
     bool insertRegistered;
     bool allyKeyRegistered,clearKeyRegistered;
     readonly TeamFilter teamFilter=new TeamFilter();
-    string teamMessage="F6: marcar companero | F7: borrar marcas";
+    string teamMessage="F6: mark teammate | F7: clear marks";
     int drawn;
     EspFrame paintedFrame;
     Rectangle paintedBounds;
@@ -395,14 +403,14 @@ sealed class EspWindow:Form {
     }
     protected override bool ShowWithoutActivation {get{return true;}}
     protected override CreateParams CreateParams {get {var p=base.CreateParams;p.ExStyle|=0x00080000|0x20|0x80|0x08000000;return p;}}
-    protected override void OnHandleCreated(EventArgs e) {base.OnHandleCreated(e);if(!RegisterHotKey(Handle,1,0x4000,0x79)) throw new Exception("No se pudo registrar F10 para cerrar.");}
+    protected override void OnHandleCreated(EventArgs e) {base.OnHandleCreated(e);if(!RegisterHotKey(Handle,1,0x4000,0x79)) throw new Exception("Could not register F10 as the close hotkey.");}
     protected override void OnHandleDestroyed(EventArgs e) {UnregisterHotKey(Handle,1);if(insertRegistered)UnregisterHotKey(Handle,2);if(allyKeyRegistered)UnregisterHotKey(Handle,3);if(clearKeyRegistered)UnregisterHotKey(Handle,4);insertRegistered=allyKeyRegistered=clearKeyRegistered=false;base.OnHandleDestroyed(e);}
     protected override void WndProc(ref Message m) {
         if(m.Msg==0x0312) {
             if(m.WParam.ToInt32()==1) {Close();return;}
             if((m.WParam.ToInt32()==3||m.WParam.ToInt32()==4)&&menu!=null&&!menu.Visible&&GetForegroundWindow()==gameWindow){
                 if(m.WParam.ToInt32()==3)teamMessage=teamFilter.ToggleAtCrosshair(reader.Frame,ClientSize.Width,ClientSize.Height,settings.FovAxis=="Vertical",settings.MaxDistance);
-                else {teamFilter.Clear();teamMessage="Marcas de companeros borradas";}
+                else {teamFilter.Clear();teamMessage="Teammate marks cleared";}
                 Invalidate();return;
             }
             if(m.WParam.ToInt32()==2&&menu!=null) {
@@ -429,7 +437,7 @@ sealed class EspWindow:Form {
         timer.Interval=gameFocused?16:250;
         if(Visible!=gameFocused)Visible=gameFocused;
         bool wantsInsert=gameFocused||GetForegroundWindow()==menu.Handle;
-        if(wantsInsert&&!insertRegistered)insertRegistered=RegisterHotKey(Handle,2,0x4000,0x2D);
+        if(wantsInsert&&!insertRegistered)insertRegistered=RegisterHotKey(Handle,2,0x4000,0x2E);
         else if(!wantsInsert&&insertRegistered){UnregisterHotKey(Handle,2);insertRegistered=false;}
         if(gameFocused){
             if(!allyKeyRegistered)allyKeyRegistered=RegisterHotKey(Handle,3,0x4000,0x75);
@@ -470,7 +478,7 @@ sealed class EspWindow:Form {
         paintedFrame=frame;paintedBounds=Bounds;
         paintedFresh=frame.IsFresh(Stopwatch.GetTimestamp());
         float labelY=20;
-        if(settings.Status){var statusBounds=DrawLabel(e.Graphics,(frame.Valid&&!paintedFresh?"Esperando datos recientes":frame.Status)+" | "+frame.TargetDataStatus+" | "+actualReadHz.ToString("F0")+" Hz | INSERT: menu",20,20);occupiedCards.Add(statusBounds);labelY=statusBounds.Bottom+8;}
+        if(settings.Status){var statusBounds=DrawLabel(e.Graphics,(frame.Valid&&!paintedFresh?"Waiting for fresh data":frame.Status)+" | "+frame.TargetDataStatus+" | "+actualReadHz.ToString("F0")+" Hz | DELETE: menu",20,20);occupiedCards.Add(statusBounds);labelY=statusBounds.Bottom+8;}
         if(settings.Status)occupiedCards.Add(DrawLabel(e.Graphics,teamMessage+" | marcados: "+teamFilter.Count+(!allyKeyRegistered||!clearKeyRegistered?" | Tecla ocupada":""),20,labelY));
         if(!settings.Enabled)return;
         if(!frame.IsFresh(Stopwatch.GetTimestamp())) return;
@@ -498,8 +506,8 @@ sealed class EspWindow:Form {
             }
         }
     }
-    static string RelationLabel(TargetRelation value){return value==TargetRelation.Ally?"aliado":value==TargetRelation.Enemy?"rival":"equipo ?";}
-    static string VisibilityLabel(TargetVisibility value){return value==TargetVisibility.Clear?"LOS cabeza":value==TargetVisibility.Occluded?"oculto cabeza":"LOS ?";}
+    static string RelationLabel(TargetRelation value){return value==TargetRelation.Ally?"ally":value==TargetRelation.Enemy?"enemy":"team ?";}
+    static string VisibilityLabel(TargetVisibility value){return value==TargetVisibility.Clear?"head LOS":value==TargetVisibility.Occluded?"head occluded":"LOS ?";}
     void DrawPose(Graphics g,Pen pen,TargetData t,EspFrame frame){
         var points=new[]{t.Head,t.Chest,t.Pelvis,t.LeftFoot,t.RightFoot};int[] from={0,1,2,2},to={1,2,3,4};
         for(int i=0;i<from.Length;i++){
@@ -599,7 +607,7 @@ public static class EspProgram {
             MemProcFsHeaderProbe.LoadRuntime(System.IO.Path.Combine(folder,"runtime","vmm.dll"));
             if(args.Length==1&&args[0]=="--verify") {Console.WriteLine("Exports ESP verificados; adquisicion no iniciada.");return 0;}
             if(!System.IO.File.Exists(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"livekd.dmp"))) throw new Exception("Falta LiveKd; iniciar mediante el lanzador.");
-            context=MemProcFsHeaderProbe.Begin("livekd");if(context==IntPtr.Zero)throw new Exception("No se pudo iniciar el lector.");
+            context=MemProcFsHeaderProbe.Begin("livekd");if(context==IntPtr.Zero)throw new Exception("Could not initialize the reader.");
             Memory.Context=context;Memory.Pid=MemProcFsHeaderProbe.FindGame(context);
             if(Memory.Pid==0)throw new Exception("Juego no encontrado.");
             Process.BaseAddress=MemProcFsHeaderProbe.GameBase(context,Memory.Pid);

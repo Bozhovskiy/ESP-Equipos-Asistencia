@@ -44,7 +44,7 @@ try {
             $env:PATH=$debuggingDirectory+';'+$env:PATH
             $env:_NT_SYMBOL_PATH=$symbolDirectory;$env:_NT_ALT_SYMBOL_PATH=''
             $report.status='running';$report | ConvertTo-Json | Set-Content -LiteralPath $resultPath -Encoding UTF8
-            $process=Start-Process -FilePath $exe -ArgumentList ('-accepteula -b -vsym -k "'+$probe+'"') -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput (Join-Path $PSScriptRoot 'livekd-output.txt') -RedirectStandardError (Join-Path $PSScriptRoot 'livekd-error.txt')
+            $process=Start-Process -FilePath $exe -ArgumentList ('-accepteula -b -vsym -k "'+$probe+'"') -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput 'livekd-output.txt' -RedirectStandardError 'livekd-error.txt'
             $report.status='finished';$report.exitCode=$process.ExitCode
         } finally {$env:PATH=$previousPath;$env:_NT_SYMBOL_PATH=$previousSymbols;$env:_NT_ALT_SYMBOL_PATH=$previousAlternate}
     }

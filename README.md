@@ -55,7 +55,7 @@ Launch `Abrir-ESP.exe`, accept its administrator prompt, and focus your compatib
 
 | Control | Action |
 | --- | --- |
-| INSERT | Show/hide settings while the game or menu has focus. |
+| DELETE | Show/hide settings while the game or menu has focus. |
 | F6 | Mark/unmark the single player under the crosshair as a teammate for this session. |
 | F7 | Clear the session's manual teammate marks. |
 | F10 | Close the overlay. |

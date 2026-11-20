@@ -83,7 +83,7 @@ sealed class TeamFilter {
             if(!Memory.Valid(player.Actor)||!TargetValidation.Finite(player.Distance)||player.Distance<0||player.Distance>maxDistance||!PlayerBoxGeometry.TryBox(player,frame,width,height,vertical,out box)||!box.Contains(width/2f,height/2f))continue;
             selected=player;matches++;
         }
-        if(matches!=1)return matches==0?"F6: coloca la mira sobre el companero":"F6: jugadores superpuestos; cambia la mira";
+        if(matches!=1)return matches==0?"F6: aim at the teammate":"F6: overlapping players; adjust your aim";
         if(marked.Remove(selected.Actor))return "Companero desmarcado";
         marked[selected.Actor]=now;return "Companero excluido del ESP";
     }
@@ -92,19 +92,19 @@ sealed class TargetDataReader {
     readonly TargetReadProfile profile;
     readonly Func<ulong,int,byte[]> read;
     bool active;
-    public string Status {get;private set;}="Sin perfil de objetivos validado";
+    public string Status {get;private set;}="No validated target profile";
     public TargetDataReader(TargetReadProfile p,Func<ulong,int,byte[]> reader){profile=p;read=reader;}
-    byte[] Block(ulong address,int size){if(!Memory.Valid(address)||size<1||size>65536||address+(ulong)size>=0x800000000000UL)throw new IOException("Direccion de objetivos invalida");byte[] b=read(address,size);if(b==null||b.Length!=size)throw new IOException("Lectura de objetivos incompleta");return b;}
+    byte[] Block(ulong address,int size){if(!Memory.Valid(address)||size<1||size>65536||address+(ulong)size>=0x800000000000UL)throw new IOException("Invalid target address");byte[] b=read(address,size);if(b==null||b.Length!=size)throw new IOException("Incomplete target read");return b;}
     ulong Pointer(ulong address){return BitConverter.ToUInt64(Block(address,8),0);}
     double Time(ulong address){return BitConverter.ToDouble(Block(address,8),0);}
     public bool Bind(ulong imageBase){
-        active=false;Status="Sin perfil de objetivos validado";if(!TargetValidation.ProfileValid(profile))return false;
+        active=false;Status="No validated target profile";if(!TargetValidation.ProfileValid(profile))return false;
         try{
             byte[] dos=Block(imageBase,64);int offset=BitConverter.ToInt32(dos,60);if(dos[0]!=77||dos[1]!=90||offset<64||offset>1048576)return false;
             byte[] pe=Block(imageBase+(uint)offset,84);
             active=BitConverter.ToUInt32(pe,0)==0x4550&&BitConverter.ToUInt16(pe,4)==0x8664&&BitConverter.ToUInt16(pe,24)==0x20b&&BitConverter.ToUInt32(pe,8)==profile.PeTimestamp&&BitConverter.ToUInt32(pe,80)==profile.ImageSize;
             Status=active?"Perfil coincide; datos sujetos a validacion":"Perfil no coincide con la compilacion";return active;
-        }catch(IOException){Status="No se pudo comprobar la compilacion";return false;}
+        }catch(IOException){Status="Could not verify the game build";return false;}
     }
     int? Team(ulong pawn){
         if(!TargetValidation.TeamLayoutValid(profile))return null;
