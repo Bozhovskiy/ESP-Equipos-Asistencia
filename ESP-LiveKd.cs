@@ -390,6 +390,7 @@ sealed class EspReader {
     public static int RediscoveryDelay(bool valid){return valid?3000:250;}
 }
 sealed class EspWindow:Form {
+    sealed class SmoothedBox {public RectangleF Value;public long Updated;}
     [StructLayout(LayoutKind.Sequential)] struct Rect {public int Left,Top,Right,Bottom;}
     [StructLayout(LayoutKind.Sequential)] struct PointNative {public int X,Y;}
     [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd,out Rect rect);
@@ -420,6 +421,7 @@ sealed class EspWindow:Form {
     long reportTick=Stopwatch.GetTimestamp();
     double actualReadHz;
     readonly List<RectangleF> occupiedCards=new List<RectangleF>();
+    readonly Dictionary<ulong,SmoothedBox> smoothedBoxes=new Dictionary<ulong,SmoothedBox>();
     EspFrame displayFrame;
     public EspWindow(EspReader r,IntPtr hwnd) {
         reader=r;gameWindow=hwnd;
@@ -520,6 +522,7 @@ sealed class EspWindow:Form {
                 if(!PlayerBoxGeometry.TryBox(player,frame,ClientSize.Width,ClientSize.Height,settings.FovAxis=="Vertical",out box)) {
                     continue;
                 }
+                box=SmoothPlayerBox(player.Actor,box);
                 if(settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,pen,box);}
                 if(settings.Skeleton&&player.Target.BonesValid)DrawPose(e.Graphics,pen,player.Target,frame);
                 string stats=PlayerStats(player);
@@ -528,6 +531,18 @@ sealed class EspWindow:Form {
                 drawn++;
             }
         }
+    }
+    RectangleF SmoothPlayerBox(ulong actor,RectangleF raw) {
+        long now=Stopwatch.GetTimestamp();SmoothedBox state;
+        if(!smoothedBoxes.TryGetValue(actor,out state)) {state=new SmoothedBox{Value=raw,Updated=now};smoothedBoxes[actor]=state;return raw;}
+        double elapsed=(now-state.Updated)/(double)Stopwatch.Frequency;
+        float centerDelta=Math.Abs((raw.Left+raw.Width/2)-(state.Value.Left+state.Value.Width/2))+Math.Abs((raw.Top+raw.Height/2)-(state.Value.Top+state.Value.Height/2));
+        if(elapsed<=0||elapsed>.20||centerDelta>Math.Max(ClientSize.Width,ClientSize.Height))state.Value=raw;
+        else {
+            float alpha=(float)(1-Math.Exp(-elapsed/.020));
+            state.Value=new RectangleF(state.Value.X+(raw.X-state.Value.X)*alpha,state.Value.Y+(raw.Y-state.Value.Y)*alpha,state.Value.Width+(raw.Width-state.Value.Width)*alpha,state.Value.Height+(raw.Height-state.Value.Height)*alpha);
+        }
+        state.Updated=now;return state.Value;
     }
     static string VisibilityLabel(TargetVisibility value){return value==TargetVisibility.Clear?"head LOS":value==TargetVisibility.Occluded?"head occluded":"LOS ?";}
     static bool ValidStat(double value,double maximum){return !double.IsNaN(value)&&!double.IsInfinity(value)&&!double.IsNaN(maximum)&&!double.IsInfinity(maximum)&&value>=0&&maximum>0&&maximum<=10000&&value<=maximum+1;}
