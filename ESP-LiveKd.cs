@@ -575,7 +575,7 @@ sealed class EspWindow:Form {
         return string.Join(" | ",parts.ToArray());
     }
     void DrawVitalBars(Graphics graphics,PlayerPoint player,RectangleF box) {
-        const float width=3,gap=4;float height=Math.Max(3,box.Height);
+        const float width=3,gap=1.5f;float height=Math.Max(3,box.Height);
         if(ValidStat(player.Health,player.MaxHealth))DrawVitalBar(graphics,new RectangleF(box.Left-gap-width,box.Top,width,height),(float)(player.Health/player.MaxHealth),Color.FromArgb(76,225,112));
         if(ValidStat(player.Armor,player.MaxArmor))DrawVitalBar(graphics,new RectangleF(box.Right+gap,box.Top,width,height),(float)(player.Armor/player.MaxArmor),Color.FromArgb(76,174,255));
     }
