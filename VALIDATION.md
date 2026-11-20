@@ -2,13 +2,15 @@
 
 This record covers compilation, synthetic behavior and local artifact checks. It does not establish compatibility with a current public game build or a running test-server session.
 
+**Revision note (20 November 2026):** the aim-assist, autofire and relative mouse input features, their settings and their nine suites were removed from this release. The retained 15 suites are unchanged except for the removed aim checks in `TargetValidationTests`, `TargetReaderTests` and `TeamFilterTests`. Both executables were rebuilt with `Recompilar.ps1` and all 15 retained suites were recompiled and run successfully on 20 November 2026; `validation-results.json` contains that post-revision run. The record below describes the earlier 24-suite run of the previous revision and is kept as history.
+
 ## Managed build and synthetic tests
 
-The public package's `Recompilar.ps1` compiled both `ESP-LiveKd.exe` and `Abrir-ESP.exe` as deterministic x64 .NET Framework executables. The public `pruebas/Verificar.ps1` then compiled and ran all **24 suites successfully** in its final full run. `validation-results.json` contains that run's individual outputs and exit codes.
+The public package's `Recompilar.ps1` compiled both `ESP-LiveKd.exe` and `Abrir-ESP.exe` as deterministic x64 .NET Framework executables. The public `pruebas/Verificar.ps1` then compiled and ran all **24 suites successfully** in the final full run of the previous revision; after the ESP-only revision, both executables were rebuilt and the retained 15 suites passed again.
 
 The new `AimCalibrationTests` suite passed nine cases: independent axes, calibrated step limits, feedback across asymmetric sensitivities at 20/30/60 Hz, invalid runtime values, repeated frames/release, reversal, migration, persistence and settings normalization. Seven missing-feature failures were reproduced before implementation. Synthetic feedback assumes the specified linear response; it is not a measurement of the game's sensitivity.
 
-The existing suites cover selection, geometry, head/chest estimates, teams, profile data, bone transforms, visibility freshness, input guards, autofire state, discovery, camera ownership, projection, radar, retry/cadence and timer lifecycle.
+The suites recorded in that earlier run covered selection, geometry, head/chest estimates, teams, profile data, bone transforms, visibility freshness, input guards, autofire state, discovery, camera ownership, projection, radar, retry/cadence and timer lifecycle.
 
 ## Timing-test history
 

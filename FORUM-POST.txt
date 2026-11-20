@@ -1,4 +1,4 @@
-[SIZE="5"][B]ARC Raiders External ESP & Aim Assist — Final Source Release[/B][/SIZE]
+[SIZE="5"][B]ARC Raiders External ESP — Final Source Release[/B][/SIZE]
 
 This is a one-time experimental release of a C# external overlay and its source code. The same archive includes the compiled x64 project executables, build scripts, tests and native source material. There will be no follow-up release posts.
 
@@ -8,19 +8,13 @@ This is a one-time experimental release of a C# external overlay and its source 
 [LIST]
 [*]Player boxes, distance labels, radar and off-screen indicators.
 [*]Configurable appearance, refresh rate, range and horizontal/vertical FOV interpretation.
-[*]Hold-right-mouse aim assistance with screen, distance or balanced selection.
-[*]Separate X/Y movement calibration, response smoothing and maximum relative-input speed.
-[*]Head or chest selection, with an estimated box point when validated bones are unavailable.
-[*]Manual teammate exclusions with F6/F7.
-[*]Optional strict team, bone and visibility checks for a compatible profile.
-[*]Guarded autofire implementation requiring confirmed target data and stable alignment.
+[*]Team, visibility and skeleton labels when a compatible profile is present.
+[*]Manual teammate exclusions with F6/F7 and optional display filters.
 [*]Source code and scripts to rebuild the project executables.
 [/LIST]
 
 [SIZE="4"][B]What actually works without a target profile[/B][/SIZE]
-The approximate targeting path can operate when the base position/camera reader matches your test build. It does not automatically distinguish unknown teammates from enemies or confirm walls. Manual teammate marks are excluded from aim and can be hidden from ESP.
-
-Autofire is [B]not available from estimated boxes[/B]. It requires a verified enemy, validated target point and fresh visibility result. Simply enabling the option does not supply those missing fields. The supplied profile does not provide working team, bone or raycast offsets.
+The overlay draws when the base position/camera reader matches your test build. It does not automatically distinguish unknown teammates from enemies or confirm walls; manual teammate marks can be hidden from ESP and unknown data stays labelled as unknown. The supplied profile does not provide working team, bone or raycast offsets, so team, visibility and skeleton metadata stay unknown until a verified profile is supplied.
 
 [SIZE="4"][B]Requirements[/B][/SIZE]
 [LIST]
@@ -38,11 +32,10 @@ LiveKD, Microsoft debugging binaries, Visual C++ redistributables and kernel PDB
 [*]Create local-prerequisites.json from the example and set the paths to your existing local prerequisites. Use the kernel PDB for your Windows build, not a random PDB with the same filename.
 [*]Launch Abrir-ESP.exe and accept its administrator prompt.
 [*]Use INSERT to review settings, close the menu, and focus the game.
-[*]Enable assistance and hold right mouse. Release and press again after a lost target or rejected input.
+[*]Use F6/F7 to mark teammates you want hidden from the overlay.
 [/LIST]
 
 [LIST]
-[*][B]RMB:[/B] hold for assistance.
 [*][B]INSERT:[/B] settings menu.
 [*][B]F6:[/B] mark/unmark one unambiguous player under the crosshair as a teammate.
 [*][B]F7:[/B] clear session marks.
@@ -50,11 +43,6 @@ LiveKD, Microsoft debugging binaries, Visual C++ redistributables and kernel PDB
 [/LIST]
 
 The application UI retains Spanish labels; the release documentation is in English. Manual marks expire after five seconds without observing an actor and reset on world/local-character changes. The retained automatic session limit is one hour.
-
-[SIZE="4"][B]Movement calibration[/B][/SIZE]
-The new X/Y controls represent expected pixels of screen displacement per relative mouse unit. Both default to 1.00. A larger value requests less movement on that axis; a smaller value requests more.
-
-Adjust one axis at a time in a controlled scene. Recalibrate after changing sensitivity, resolution, FOV or ADS behavior. Calibration is manual and linear: there is no automatic sensitivity measurement or automatic ADS compensation. The controller bounds integer corrections against the configured remaining error; actual camera response still depends on the game.
 
 [SIZE="4"][B]Source and build[/B][/SIZE]
 The archive includes the managed overlay and launcher source, an installed-compiler resolver, deterministic x64 build scripts and synthetic tests. Recompilar.ps1 rebuilds the two project EXEs and updates their hashes.
@@ -68,11 +56,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\pruebas\Verificar.ps1
 The native source material includes MemProcFS v5.19 source and the complete modified LeechCore source baseline, along with its reproducible File-backend serialization adjustment. Read NATIVE-SOURCES.md and retain the upstream license notices.
 
 [SIZE="4"][B]Validation and limitations[/B][/SIZE]
-All 24 suites passed in the final full run, including nine new calibration cases with different axis sensitivities and sample rates. The Windows timer test failed its latency threshold in two earlier batch runs, then passed in an isolated run and the final batch. That intermittent failure remains documented. These tests use synthetic data and do not demonstrate in-game functionality.
+The recorded full run passed all 24 suites of the previous revision. The aim-assist, autofire and relative-mouse input features, and their nine suites, were then removed; the retained 15 suites cover discovery, teams, profile data, bone transforms, projection, radar and timer lifecycle and are unchanged except for the removed aim checks. The Windows timer test failed its latency threshold in two earlier batch runs, then passed in an isolated run and the final batch. That intermittent failure remains documented. These tests use synthetic data and do not demonstrate in-game functionality.
 
 Native export loading is verified with the reduced runtime. The concurrent File-backend stress test and final artifact checks are documented in VALIDATION.md. End-to-end acquisition with the public package remains unverified.
 
-The base reader can break with a game update. Projection does not fully support aspect-constrained or off-center cameras. Life/downed state, muzzle obstruction and projectile trajectory are not checked. Camera-ray visibility is not proof of a clear firing path from the weapon. No claim of an undetected or universally compatible release is made.
+The base reader can break with a game update. Projection does not fully support aspect-constrained or off-center cameras. Life/downed state is not checked, and a camera-ray visibility label describes the camera ray, not the weapon path. No claim of an undetected or universally compatible release is made.
 
 [SIZE="4"][B]Download[/B][/SIZE]
 [URL="REPLACE_WITH_APPROVED_UC_DOWNLOAD_URL"]Download the complete source and binary archive from UC Downloads[/URL]

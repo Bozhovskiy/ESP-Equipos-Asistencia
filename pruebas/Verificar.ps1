@@ -6,8 +6,8 @@ $ErrorActionPreference='Stop'
 . (Join-Path (Split-Path $PSScriptRoot -Parent) 'Compiler.ps1')
 $CompilerPath=Resolve-EspCompiler $CompilerPath
 $package=Split-Path $PSScriptRoot -Parent
-$sources=@('Entidades-live.cs','ESP-LiveKd.cs','Proyeccion.cs','Menu-ESP.cs','Asistencia.cs','Raton-Normal.cs','Caja-Compartida.cs','Objetivos.cs') | ForEach-Object {Join-Path $package $_}
-$tests=@('AimCalibrationTests','AimPrecisionTests','SceneDiscoveryTests','AimDiagnosticsTests','TeamFilterTests','TargetValidationTests','TargetReaderTests','AssistTests','ImprovedAssistTests','AutoFireTests','AssistGeometryTests','NormalMouseTests','AssistSettingsTests','CameraDiscoveryTests','FrameFreshnessTests','RefreshCadenceTests','ReaderRetryTests','ProjectionTests','FovAxisTests','WorldPositionTests','RadarTests','EdgeIndicatorTests','RadarLayoutTests','TimerResolutionTests')
+$sources=@('Entidades-live.cs','ESP-LiveKd.cs','Proyeccion.cs','Menu-ESP.cs','Caja-Compartida.cs','Objetivos.cs') | ForEach-Object {Join-Path $package $_}
+$tests=@('SceneDiscoveryTests','TeamFilterTests','TargetValidationTests','TargetReaderTests','CameraDiscoveryTests','FrameFreshnessTests','RefreshCadenceTests','ReaderRetryTests','ProjectionTests','FovAxisTests','WorldPositionTests','RadarTests','EdgeIndicatorTests','RadarLayoutTests','TimerResolutionTests')
 $results=@()
 foreach($name in $tests){
     $folder=Join-Path $OutputDirectory $name

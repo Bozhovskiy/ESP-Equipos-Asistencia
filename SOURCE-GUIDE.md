@@ -11,13 +11,11 @@ The managed project files are:
 | `Abrir-ESP.cs` | Small executable launcher and `--verify` script-presence check. |
 | `Probar-LiveKd.ps1` | Package checks, local prerequisite configuration, single-launch mutex and lifetime of the external acquisition process. |
 | `Entidades-live.cs` | Native API bindings, process/module lookup, memory access and game-specific name decoding. |
-| `ESP-LiveKd.cs` | Scene/camera discovery, timestamped frames, reader loop, overlay, radar layout and input coordination. |
+| `ESP-LiveKd.cs` | Scene/camera discovery, timestamped frames, reader loop, overlay and radar layout. |
 | `Proyeccion.cs` | Camera-basis projection, world-transform validation, radar and edge markers. |
-| `Caja-Compartida.cs` | Shared player box geometry for drawing and target point estimation. |
-| `Menu-ESP.cs` | Settings migration, persistence, menu and calibration controls. |
-| `Objetivos.cs` | Optional target profile, team/bone/visibility reading, validation and manual teammate filtering. |
-| `Asistencia.cs` | Target selection, calibrated movement, timing/input guards and autofire alignment state. |
-| `Raton-Normal.cs` | Relative mouse input packets and guarded click/release handling. |
+| `Caja-Compartida.cs` | Shared player box geometry for drawing. |
+| `Menu-ESP.cs` | Settings persistence and menu. |
+| `Objetivos.cs` | Optional target profile, team/bone/visibility reading, validation and manual teammate display filtering. |
 | `Compiler.ps1` / `Recompilar.ps1` | Installed compiler discovery and deterministic managed builds. |
 | `pruebas` | Synthetic regression suites. |
 
@@ -39,32 +37,13 @@ The camera rotation builds forward/right/up axes from pitch, yaw and roll. Point
 
 The current projection uses the full client rectangle. It does not fully model an aspect-constrained image rectangle, black bars, off-center projection, or every Unreal axis-constraint convention. `AspectRatio` and `DesiredFov` are available in diagnostics but do not automatically resolve those semantics. Changing the menu's axis option is a manual interpretation, not a proven conversion of the game camera field.
 
-## Selection and movement
+## Teams and display filters
 
-Candidates must pass geometry, range and optional metadata checks. Acquisition is limited to the configured circle. Once acquired, the controller retains that actor with a 20% radius margin. It does not automatically jump to another actor while the activation button remains held after losing the first one.
-
-The priorities are screen error, world distance, or a weighted combination. Ties use distance and then actor address to avoid dependence on enumeration order. Actor addresses are not a complete generational identity; address reuse and broader session identity remain limitations.
-
-The new movement conversion is:
-
-```text
-errorUnitsX = screenErrorX / PixelsPerUnitX
-errorUnitsY = screenErrorY / PixelsPerUnitY
-```
-
-The existing response curve scales these input-space errors by an exponential gain anchored at a 20 ms interval. A vector limit caps relative-input units per second. Each axis carries a fractional remainder, clears an opposing remainder on a direction change, and limits an integer step to the floor of its remaining calibrated error. Errors below one relative input unit do not accumulate a crossing step.
-
-Calibration values are independently persisted in `AssistPixelsPerUnitX` and `AssistPixelsPerUnitY`. Old profiles receive 1.00 for both; invalid settings are normalized before reaching controls. An invalid runtime option pauses the controller and requires release. The values are manual linear estimates. There is no response observer, automatic calibration or FOV/ADS compensation in this release.
-
-One frame produces at most one correction. A repeated timestamp does not resend movement. Guards check focus, menu state, activation, frame validity, monotonic timing, frame age and client dimensions. Before input submission, the application rechecks relevant conditions and visibility freshness. Windows accepting `SendInput` is recorded separately from the unverified effect on the game.
-
-## Teams and estimated points
-
-Confirmed allies and manually marked teammates are excluded from targeting. Unknown team data stays unknown. Display suppression of allies is separate from targeting exclusion; turning their display back on does not make them targetable.
+Confirmed allies and manually marked teammates can be hidden from the overlay with the display filters. Unknown team data stays unknown and is labelled `equipo ?` rather than guessed.
 
 F6 requires one unambiguous player near the crosshair. Marks are session state, expire after five seconds of absence, and reset on world/local-pawn change. They are not a permanent classifier or automatic team detector.
 
-Without validated bones, the box approximates a standing character. The controller accepts visible boxes from 1 pixel wide and 3 pixels high. Estimated Head uses the saved height percentage; estimated Chest uses 45% from the top. Small accepted boxes do not establish skeletal accuracy or enemy status.
+Without validated bones, the box approximates a standing character. A validated profile uses the head and feet bones for the box and draws the skeleton posture instead. Unknown metadata never becomes a positive or negative classification.
 
 ## Optional profile contract
 
@@ -83,15 +62,13 @@ Bone translations are composed with the component's scale, quaternion and transl
 
 Teams and bones are separate capabilities; neither requires enabling an incomplete layout for the other. Missing data does not become a verified negative or positive result.
 
-## Visibility and autofire
+## Visibility
 
-The visibility contract requires `VisibilitySource="CameraRaycast"`, a local observer pointer, world time and raycast time using the same double-seconds clock, and separate head/chest bytes: 1 means clear, 0 means blocked, other values mean unknown. Observer and timestamp are checked again during sampling. The combined observation/input age limit is 80 ms; future results are rejected.
+The visibility contract requires `VisibilitySource="CameraRaycast"`, a local observer pointer, world time and raycast time using the same double-seconds clock, and separate head/chest bytes: 1 means clear, 0 means blocked, other values mean unknown. Observer and timestamp are checked again during sampling; the observation age limit is 80 ms and future results are rejected.
 
 These fields must actually exist with those meanings in a compatible test implementation. Render timestamps or flags are not substituted for raycast results. The disabled distributed profile does not expose working visibility offsets.
 
-Autofire requires a confirmed enemy, validated point and fresh visibility; it additionally checks RMB, focus, menu state and alignment across multiple samples for at least 60 ms. It will not fire while a movement correction is pending or reuse one frame as repeated confirmation. A rejected click blocks until release. Partial left-button insertion is tracked so the release is retried without issuing a new press.
-
-Life state, downed state, ammunition, projectile trajectory and weapon muzzle obstruction are not validated. A camera-to-bone ray is not proof of a clear muzzle-to-target path.
+The visibility label describes a camera-to-bone raycast only. Life state, downed state, ammunition, projectile trajectory and weapon muzzle obstruction are not validated, and a camera ray is not proof of a clear weapon path.
 
 ## Local outputs and release boundaries
 

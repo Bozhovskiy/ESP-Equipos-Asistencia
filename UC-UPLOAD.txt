@@ -1,7 +1,7 @@
 UC DOWNLOADS FORM
 
 File Name:
-ARC Raiders ESP Aim Assist 1.0 Final - Source and Binary
+ARC Raiders ESP 1.0 Final - Source and Binary
 
 Author:
 Virtualvirua (release maintainer)
@@ -18,16 +18,15 @@ File to upload:
 ESP-Equipos-Asistencia.zip
 
 Description:
-[B]ARC Raiders ESP and Aim Assist — 1.0 Final[/B]
+[B]ARC Raiders ESP — 1.0 Final[/B]
 
 One-time experimental source and binary snapshot of a C# external overlay.
 Includes the x64 project executables, complete managed source, build scripts,
 synthetic tests, documentation and version-pinned native source material.
 
-Features include ESP boxes, distances, radar, off-screen indicators, RMB aim
-assistance, independent X/Y movement calibration and manual teammate exclusions.
-The optional team/bone/visibility profile is disabled and unverified. Autofire
-requires authoritative target data and cannot operate from estimated boxes.
+Features include ESP boxes, distances, radar, off-screen indicators and manual
+telemate exclusions. The optional team/bone/visibility profile is disabled and
+unverified; without it team, visibility and skeleton labels stay unknown.
 
 Requires x64 Windows 11, .NET Framework 4.8, the x64 Visual C++ runtime and locally
 installed LiveKD 5.65, x64 Debugging Tools components and matching kernel symbols.
@@ -46,13 +45,13 @@ Prefix:
 Release
 
 Title:
-ARC Raiders External ESP & Aim Assist - Final Source Release
+ARC Raiders External ESP - Final Source Release
 
 Message:
 Paste the complete contents of FORUM-POST.txt into the BBCode editor.
 
 Optional tags:
-arc raiders, external, esp, aim assist, csharp, source, release
+arc raiders, external, esp, csharp, source, release
 
 Before submitting the final public post:
 - Upload only the public release ZIP, not your private prerequisite folder.

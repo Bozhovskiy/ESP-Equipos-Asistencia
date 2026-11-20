@@ -2,7 +2,7 @@ param([string]$OutputPath=(Join-Path (Split-Path $PSScriptRoot -Parent) 'ESP-Equ
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$rootFiles=@('Abrir-ESP.cmd','Abrir-ESP.cs','Abrir-ESP.exe','Asistencia.cs','Caja-Compartida.cs','Compiler.ps1','Entidades-live.cs','ESP-LiveKd.cs','ESP-LiveKd.exe','Menu-ESP.cs','Objetivos.cs','Proyeccion.cs','Raton-Normal.cs','Recompilar.ps1','Probar-LiveKd.ps1','Build-Release.ps1','configuracion-esp.json','perfil-objetivos.json','local-prerequisites.example.json','procedencia-livekd.json','README.md','SOURCE-GUIDE.md','NATIVE-SOURCES.md','SOURCE-NOTICE.txt','VALIDATION.md','validation-results.json','FORUM-POST.txt','UC-UPLOAD.txt','release-files.sha256')
+$rootFiles=@('Abrir-ESP.cmd','Abrir-ESP.cs','Abrir-ESP.exe','Caja-Compartida.cs','Compiler.ps1','Entidades-live.cs','ESP-LiveKd.cs','ESP-LiveKd.exe','Menu-ESP.cs','Objetivos.cs','Proyeccion.cs','Recompilar.ps1','Probar-LiveKd.ps1','Build-Release.ps1','configuracion-esp.json','perfil-objetivos.json','local-prerequisites.example.json','procedencia-livekd.json','README.md','SOURCE-GUIDE.md','NATIVE-SOURCES.md','SOURCE-NOTICE.txt','VALIDATION.md','validation-results.json','FORUM-POST.txt','UC-UPLOAD.txt','release-files.sha256')
 $files=@($rootFiles | ForEach-Object {
     $path=Join-Path $PSScriptRoot $_
     if(-not(Test-Path -LiteralPath $path -PathType Leaf)){throw ('Required release file missing: '+$_)}

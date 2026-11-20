@@ -1,7 +1,7 @@
 ﻿{
     "release":  "1.0-final",
     "releaseDate":  "2026-10-12",
-    "espSha256":  "51612495288629FE55F2E9E0FA868A4D4C51E1CC20EF2A78397A9F64607E4FC8",
+    "espSha256":  "187E77724B85F0FFAFE9AE576C306996EFAFDEAFC0B0EB8E73A06D11AA6E9333",
     "launcherSha256":  "9932253ADBEE9023919E406D4D2F65EEC89050C4023208DC539363877BEE2AEC",
     "prerequisites":  {
                           "bundled":  false,
@@ -41,8 +41,6 @@
     "nativeFileReadsSerialized":  true,
     "targetOffsetsVerified":  false,
     "gameSessionVerified":  false,
-    "autoFireRequiresConfirmedTarget":  true,
-    "calibrationMode":  "manual-linear-per-axis",
     "memprocfsSourceCommit":  "2e85ff7edc3772e24bce28bdc4cccb744a8b2456",
     "validationDocument":  "VALIDATION.md"
 }

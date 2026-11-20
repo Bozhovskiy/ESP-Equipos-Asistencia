@@ -1,4 +1,4 @@
-# ARC Raiders ESP and Aim Assist — 1.0 Final
+# ARC Raiders ESP — 1.0 Final
 
 One-time experimental source and binary release. The archive contains the x64 overlay, its launcher, all project source files, reproducible build scripts, synthetic tests, and the native source material described below. This is a snapshot; there is no updater.
 
@@ -8,14 +8,11 @@ The reader targets `PioneerGame.exe` and contains game-specific offsets. It is n
 
 - Player boxes, distance labels, radar and off-screen indicators.
 - Adjustable appearance, range, refresh rate and horizontal/vertical FOV interpretation.
-- Hold-right-mouse aim assistance with screen, distance or balanced selection.
-- Independent X/Y movement calibration, response and speed limits.
-- Estimated head/chest targeting when authoritative bone data is unavailable.
-- Manual teammate exclusions and optional strict team, bone and visibility filters.
-- A guarded autofire implementation that requires confirmed target data.
+- Team, visibility and validated-bone skeleton labels when a compatible profile is present.
+- Manual teammate exclusions and optional display filters for allies and unknown teams.
 - Source for the overlay and launcher, tests, native patch and version-pinned native source archives.
 
-Automatic team identification, validated bone targeting and confirmed visibility require a compatible `perfil-objetivos.json`. The included profile is disabled because its missing fields have not been verified. Without such a profile, the approximate mode does not identify enemies or prove line of sight. Autofire cannot operate in approximate mode.
+Team labels, visibility labels and the skeleton posture require a compatible `perfil-objetivos.json`. The included profile is disabled because its missing fields have not been verified. Without such a profile that metadata stays unknown and the skeleton is not drawn.
 
 ## Requirements and external prerequisites
 
@@ -58,36 +55,20 @@ Launch `Abrir-ESP.exe`, accept its administrator prompt, and focus your compatib
 
 | Control | Action |
 | --- | --- |
-| Right mouse button | Hold to request assistance; assistance must also be enabled in the menu. |
 | INSERT | Show/hide settings while the game or menu has focus. |
 | F6 | Mark/unmark the single player under the crosshair as a teammate for this session. |
 | F7 | Clear the session's manual teammate marks. |
 | F10 | Close the overlay. |
 
-The application interface retains Spanish labels; this documentation explains their meaning in English. Close the menu and return focus to the game before using assistance. Release and press right mouse again after a target is lost, settings change, or input is rejected. A button already held during initialization must first be released. The application also retains its one-hour automatic session limit.
+The application interface retains Spanish labels; this documentation explains their meaning in English. Close the menu and return focus to the game before using the hotkeys. The application also retains its one-hour automatic session limit.
 
-Manual teammate marks are local and temporary. They expire after five seconds without observing the actor and reset when the world or local pawn changes. F6 does not guess between overlapping players. A known or manually marked ally is excluded from assistance even when its ESP display is enabled.
+Manual teammate marks are local and temporary. They expire after five seconds without observing the actor and reset when the world or local pawn changes. F6 does not guess between overlapping players. A known or manually marked ally can be hidden from the display with the ally filters.
 
-## Estimated versus confirmed targeting
+## Display metadata
 
-The supplied display/preferences file preserves the approximate setup: `AssistRequireEnemy`, `AssistRequireVisible` and `AssistRequireBones` are false. This lets the controller use an estimated point from a player box. It can include players whose team is unknown unless you exclude them manually or enable strict filtering.
+Team, visibility and bone data come from `perfil-objetivos.json`. When the profile matches the test build, the distance card shows the relation (`aliado`, `rival`, `equipo ?`) and the head line-of-sight state (`LOS cabeza`, `oculto cabeza`, `LOS ?`), and the skeleton posture is drawn when the bone pose passes validation. With the included disabled profile this metadata stays unknown and the skeleton is not drawn.
 
-`Cabeza` means Head. `Pecho` means Chest. Estimated Head uses `AssistPointPercent`, measured downward from the top of the box; estimated Chest uses 45%. A validated profile uses the corresponding bone's projected position instead. The estimated standing box does not certify the character's actual pose or head location.
-
-To require confirmed data, enable the strict options. With the included disabled profile, these options can leave no eligible targets. This is intentional: unavailable metadata stays unknown. `AutoFireEnabled` starts false when settings are loaded and autofire additionally requires a verified enemy, bone and fresh visibility result. Enabling its checkbox alone is insufficient.
-
-## New: per-axis movement calibration
-
-`Calibracion X (px/unidad)` and `Calibracion Y (px/unidad)` set the expected screen displacement in pixels produced by one relative mouse unit on each axis. Both default to 1.00, preserving the previous controller model. Their accepted range is 0.10–20.00.
-
-- A larger value requests less movement for the same screen error. Increase it on an axis that consistently overshoots.
-- A smaller value requests more movement. Decrease it on an axis that consistently responds too weakly.
-- Adjust one axis at a time in a controlled local scene, with a stationary target and unchanged camera/input settings.
-- Recalibrate after changing sensitivity, resolution, FOV or ADS behavior. There is no automatic ADS profile switch or automatic sensitivity measurement.
-
-For example, a configured horizontal value of 4 means that a 40-pixel horizontal error corresponds to approximately 10 mouse units before smoothing. A vertical value of 2 treats the same vertical error as approximately 20 units. These are a linear model, not measurements of your game.
-
-The controller applies response smoothing, a maximum relative-input rate and per-axis quantization limits. It does not keep accumulating a full unit when that unit would exceed the remaining calibrated error. With high sensitivity, one input unit can be several pixels; an integer input API cannot guarantee a subpixel final position. The screen stopping zone remains 1.5 pixels, but the attainable residual also depends on your calibration and the game's response.
+The ally and unknown-team display filters, and the F6/F7 manual marks, control which players the overlay draws. They never change any game state.
 
 ## Build from source
 
@@ -122,13 +103,10 @@ These checks do not initialize the memory acquisition device or send real mouse 
 | Native export verification fails | Check x64 Visual C++ runtime availability and the required DLL hashes. |
 | No camera or local character | The target process, game offsets or scene discovery may be incompatible. |
 | ESP geometry is displaced | Check the FOV interpretation, client dimensions and actual camera semantics; a fixed offset is not a general correction. |
-| No assistance | Check activation, RMB, focus, closed menu, fresh data, range, selection radius and strict filters. |
 | Team displays `equipo ?` | Automatic team information is unavailable; use manual exclusions or a validated profile. |
-| Autofire remains inactive | It requires authoritative team, bone and visibility information, not an estimated box. |
-| Aim overshoots or reacts weakly | Adjust the corresponding calibration axis and check sensitivity/FOV changes. |
 | Session ends after about one hour | This is the retained session limit, not an unlimited background service. |
 
-`estado-esp.json` describes the current frame and targeting exclusions. `launcher-status.json`, `livekd-output.txt` and `livekd-error.txt` describe local launcher activity. These are generated locally and are not part of the release archive. Input accepted by Windows is not proof that the game applied the requested camera movement.
+`estado-esp.json` describes the current frame and display filters. `launcher-status.json`, `livekd-output.txt` and `livekd-error.txt` describe local launcher activity. These are generated locally and are not part of the release archive.
 
 ## Source, attribution and redistribution
 
