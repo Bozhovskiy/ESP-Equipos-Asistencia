@@ -56,8 +56,8 @@ public static class MemProcFsHeaderProbe {
 
 public static class GNames
 {
-    private const ulong NamesOffset = 0x1049FAC0;
-    private const ulong KeyTableOffset = 0x103692BC;
+    private const ulong NamesOffset = 0x1055BAC0;
+    private const ulong KeyTableOffset = 0x104252CC;
  
     private const uint HP = 0x01000193;
     private const ulong FnvPrime = 0x100000001B3UL;
@@ -73,13 +73,12 @@ public static class GNames
     private const ulong BlockAddLo = 0x1F53CB8D1AA510D5UL;
     private const ulong BlockAddHi = 0xE0ACCDCF9338EF2AUL;
  
-    private const int KeystreamCount = 256;
-    private const int KeystreamBase = 24;
-    private const uint StringKeyBias = 0x8CB5;
+    private const int KeystreamCount = 64;
  
     private static readonly ushort[] KeyTable = new ushort[256];
+    private static ulong RuntimeKey,RuntimeSlotXor,BlockKey,Clmul;
     private static bool _ready;
-    private static readonly System.Collections.Generic.Dictionary<int,string> NameCache=new System.Collections.Generic.Dictionary<int,string>();
+    private static readonly System.Collections.Generic.Dictionary<uint,string> NameCache=new System.Collections.Generic.Dictionary<uint,string>();
  
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool MemValid(ulong p) => p is > 0x10000UL and < 0x7FFFFFFFFFFFUL;
@@ -94,15 +93,18 @@ public static class GNames
         Memory.ReadArray(baseAddr + KeyTableOffset, buf);
         for (var i = 0; i < KeystreamCount; i++)
             KeyTable[i] = BitConverter.ToUInt16(buf, i * 2);
+        ulong root=baseAddr+0x104DDC80;
+        RuntimeKey=unchecked(root*((root^0x36BF671D28440C10UL)|1));
+        RuntimeSlotXor=unchecked(RuntimeKey+0xC47AC7BF12A57D48UL);
+        BlockKey=unchecked(RuntimeKey+0xB7BE4E5805E903E1UL);
+        Clmul=CarrylessMultiply(0xB997343CF3060800UL,0xF994FBD058EAA63FUL);
         _ready = true;
     }
  
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort KsSlot(uint k) => KeyTable[(int)((k & 0x3Fu) + KeystreamBase)];
- 
     public static string GetActorName(ulong actor) => DecryptActorName(actor);
+    public static string DebugActor(ulong actor){try{EnsureInit();uint slot=PickNameSlot(actor),index=ReadCompIndex(actor,slot),handle=IndexHandle(index);ulong pool=Process.BaseAddress+NamesOffset+((handle>>8)&0xFFFF00u);uint blockSlot=BlockHash(pool+0x7050)&7u;byte[] slots=Memory.Bytes(pool+0x7060,8*0x20);ulong first=BitConverter.ToUInt64(slots,(int)blockSlot*0x20),second=BitConverter.ToUInt64(slots,(int)((blockSlot+1)&7)*0x20),x=first^Clmul^BlockKey,mix=unchecked(BitOperations.RotateLeft(x,57)*FnvPrime+0x41B1A77AC7A0DEC5UL);mix=unchecked(BitOperations.RotateLeft(mix,34)*FnvPrime+0x41B1A77AC7A0DEC5UL);ulong candidate=unchecked(x+(BlockKey^Clmul^mix^second)+2UL*(handle&0xFFFF));byte[] raw=Memory.Bytes(actor+0x20+slot*0x20,16);return "actor=0x"+actor.ToString("X")+" slot="+slot+" raw="+BitConverter.ToString(raw).Replace("-","")+" index=0x"+index.ToString("X")+" pool=0x"+pool.ToString("X")+" block="+blockSlot+" first=0x"+first.ToString("X")+" second=0x"+second.ToString("X")+" candidate=0x"+candidate.ToString("X");}catch(Exception e){return e.GetType().Name+":"+e.Message;}}
  
-    public static int GetActorFNameId(ulong actor)
+    public static uint GetActorFNameId(ulong actor)
     {
         if (!MemValid(actor)) return 0;
         EnsureInit();
@@ -116,34 +118,26 @@ public static class GNames
         var seed = actor + 0x10;
         var lo = (uint)seed;
         var hi = (uint)(seed >> 32);
- 
-        var hash = HP * BitOperations.RotateLeft(lo, 13) + SlotHashAdd;
-        hash = HP * BitOperations.RotateLeft(hash, 29) + hi + SlotHashAdd;
-        hash = HP * BitOperations.RotateLeft(hash, 13) + SlotHashAdd;
-        hash = HP * (hash >> 3) + SlotHashAdd;
-        return ((hash ^ (hash >> 16)) & 3u) ^ 2u;
+        uint hash=unchecked(HP*BitOperations.RotateLeft(lo,29)+0xDBC19032u);
+        hash=unchecked(HP*BitOperations.RotateLeft(hash,13)+hi+0xDBC19032u);
+        hash=unchecked(HP*BitOperations.RotateLeft(hash,29)+0xDBC19032u);
+        hash=unchecked(HP*BitOperations.RotateLeft(hash,13)+0xDBC19032u);
+        return ((hash^(hash>>16))^2u)&3u;
     }
  
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort Rol16(ushort x, int n) => (ushort)((x << n) | (x >> (16 - n)));
  
-    private static int ReadCompIndex(ulong actor, uint slot)
+    private static uint ReadCompIndex(ulong actor, uint slot)
     {
-        var slotAddr = actor + 0x20 + 0x20UL * slot;
-        if (!MemValid(slotAddr)) return 0;
- 
-        var enc = Memory.Read<ulong>(slotAddr);
-        if (enc == 0) return 0;
- 
-        var dec = 0UL;
-        for (var lane = 0; lane < 4; lane++)
-        {
-            var w = (ushort)(enc >> (lane * 16));
-            var k = (ushort)(SlotXor >> (lane * 16));
-            w = Rol16((ushort)(Rol16(w, 13) ^ k), 4);
-            dec |= (ulong)w << (lane * 16);
-        }
-        return (int)(uint)BitOperations.RotateLeft(dec, 32);
+        for(uint i=0;i<4;i++){
+            ulong slotAddr=actor+0x20+0x20UL*((slot+i)&3);if(!MemValid(slotAddr))continue;byte[] raw=Memory.Bytes(slotAddr,16);
+            ulong first=BitConverter.ToUInt64(raw,0),second=BitConverter.ToUInt64(raw,8);if(first==0&&second==0)continue;
+            const ulong m=0xE3832A364AE7E341UL,a=0xB0F796460D6E0BE4UL;
+            ulong t1=unchecked(m*BitOperations.RotateLeft(unchecked(first+0x72BF7FCC99941CBFUL),61)+a),mid=t1^second;
+            ulong t2=unchecked(m*BitOperations.RotateLeft(unchecked(mid+0x8D41E1DC4AE7E340UL),3)+a),decoded=first^unchecked(RuntimeKey+0x4F0869B861BD3035UL)^t2;
+            uint index=(uint)BitOperations.RotateLeft(decoded,32);if(index>0&&index<20000000u)return index;
+        }return 0;
     }
  
     private static string DecryptActorName(ulong actor)
@@ -153,7 +147,7 @@ public static class GNames
         if (!_ready) return string.Empty;
  
         var ci = GetActorFNameId(actor);
-        if (ci <= 0) return string.Empty;
+        if (ci == 0) return string.Empty;
         string cached;if(NameCache.TryGetValue(ci,out cached))return cached;
  
         var namePtr = ResolveNamePtr(ci);
@@ -162,29 +156,20 @@ public static class GNames
         var header = Memory.Read<ushort>(namePtr);
         if (header == 0) return string.Empty;
  
-        var isWide = (header & 1u) != 0;
-        var length = (header & 0x3FE) + (header >> 15);
+        var isWide = (header & 0x8000u) != 0;
+        var length = ((header>>4)&0x3F)+((header&0xF)<<6);
         if (length <= 0 || length > 1024) return string.Empty;
-        string decoded=isWide ? DecodeWide(namePtr + 2, length >> 1) : DecodeNarrow(namePtr + 2, length);
+        string decoded=isWide ? DecodeWide(namePtr + 2, length) : DecodeNarrow(namePtr + 2, length);
         if(!string.IsNullOrEmpty(decoded)&&decoded.IndexOf('?')<0){if(NameCache.Count>=8192)NameCache.Clear();NameCache[ci]=decoded;}
         return decoded;
     }
  
-    private static ulong ResolveNamePtr(int compIndex)
+    private static ulong ResolveNamePtr(uint compIndex)
     {
-        var ci = (uint)compIndex;
-        var nameOffset = (ushort)ci;
-        var chunk = Process.BaseAddress + NamesOffset + ((ci >> 8) & ChunkOffsetMask);
- 
-        ShardHash(chunk + ChunkHashSeed, out var bidx1, out var bidx2);
- 
-        var block1 = DecryptBlock(chunk + ChunkBlockBase + 32UL * bidx1);
-        var block2 = DecryptBlock(chunk + ChunkBlockBase + 32UL * bidx2);
-        if (block1 == 0 && block2 == 0) return 0;
- 
-        var fnv = FnvPrime * BitOperations.RotateLeft(block1, 57) + FnvAdd;
-        fnv = FnvPrime * BitOperations.RotateLeft(fnv, 46) + FnvAdd;
-        return block1 + (block2 ^ fnv) + 2UL * nameOffset;
+        ulong pool=Process.BaseAddress+NamesOffset,chunk=((ulong)compIndex>>8)&0x1FFF00,origin=pool+chunk+0x4BD0;
+        uint lo=(uint)origin,hi=(uint)(origin>>32),h=unchecked(HP*(lo>>4)+0xA3DE7993u);h=unchecked(HP*BitOperations.RotateLeft(h,18)+hi+0xA3DE7993u);h=unchecked(HP*BitOperations.RotateLeft(h,28)+0xA3DE7993u);h=unchecked(HP*BitOperations.RotateLeft(h,18)+0xA3DE7993u);uint sel=h^(h>>16);
+        ulong slotBase=origin+0x10,first=DecryptPoolSlot(Memory.Read<ulong>(slotBase+(sel&7u)*0x20)),second=DecryptPoolSlot(Memory.Read<ulong>(slotBase+((sel+1u)&7u)*0x20));
+        ulong mix=unchecked(FnvPrime*BitOperations.RotateLeft(first,54)+0x92A80269353379B3UL);mix=unchecked(FnvPrime*BitOperations.RotateLeft(mix,50)+0x92A80269353379B3UL);ulong entry=unchecked(first+(second^mix)+2UL*(compIndex&0xFFFF));return MemValid(entry)?entry:0;
     }
  
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -216,9 +201,8 @@ public static class GNames
         var bytes = new byte[length];
         Memory.ReadArray(addr, bytes);
  
-        var key = (uint)length + StringKeyBias;
-        for (var i = 0; i < length; i++)
-            bytes[i] ^= (byte)(KsSlot(key + (uint)i) >> 3);
+        uint state=(uint)(length+0xED4B);
+        for(var i=0;i<length;i++)bytes[i]^=(byte)(KeyTable[(int)((state++)&63)]>>3);
  
         var sb = new StringBuilder(length);
         foreach (var b in bytes)
@@ -234,16 +218,31 @@ public static class GNames
         var raw = new byte[length * 2];
         Memory.ReadArray(addr, raw);
  
-        var key = (uint)length + StringKeyBias;
+        uint state=(uint)(length+0xED4B);
         var sb = new StringBuilder(length);
         for (var i = 0; i < length; i++)
         {
-            var c = (ushort)(BitConverter.ToUInt16(raw, i * 2) ^ KsSlot(key + (uint)i));
+            var c=(ushort)(BitConverter.ToUInt16(raw,i*2)^KeyTable[(int)((state++)&63)]);
             if (c == 0) break;
             sb.Append(c is >= 32 and <= 126 ? (char)c : '?');
         }
         return sb.ToString();
     }
+
+    static ulong CarrylessMultiply(ulong a,ulong b){ulong result=0;for(int bit=0;bit<64;bit++)if(((b>>bit)&1)!=0)result^=a<<bit;return result;}
+    static ulong DecryptPoolSlot(ulong raw){ulong x=raw^0x884E54BC3A85843FUL,rot=((x>>2)&0x3FFF3FFF3FFF3FFFUL)|((x<<14)&0xC000C000C000C000UL);return rot^unchecked(RuntimeKey+0x2B6D57FF3E221E7AUL)^0x88EED3571FCF4D01UL;}
+    static byte[] ShuffleBytes(byte[] block,byte[] mask){var r=new byte[16];for(int i=0;i<16;i++)r[i]=(mask[i]&0x80)!=0?(byte)0:block[mask[i]&15];return r;}
+    static byte[] ShuffleLowWords(byte[] block,int immediate){var r=(byte[])block.Clone();for(int i=0;i<4;i++){int source=((immediate>>(2*i))&3)*2;r[i*2]=block[source];r[i*2+1]=block[source+1];}return r;}
+    static byte[] RotateDwords(byte[] block,int count){var r=new byte[16];for(int i=0;i<4;i++){uint v=BitConverter.ToUInt32(block,i*4);byte[] b=BitConverter.GetBytes(BitOperations.RotateLeft(v,count));Array.Copy(b,0,r,i*4,4);}return r;}
+    static byte[] Xor(byte[] a,byte[] b){var r=new byte[16];for(int i=0;i<16;i++)r[i]=(byte)(a[i]^b[i]);return r;}
+    static uint IndexHandle(uint index){
+        byte[] seed=new byte[16],block=new byte[16];Array.Copy(BitConverter.GetBytes(unchecked(RuntimeKey+0x194636136770EB9BUL)),seed,8);Array.Copy(BitConverter.GetBytes(index),block,4);
+        block=Xor(ShuffleBytes(block,new byte[]{2,0x80,1,0x80,0x80,0x80,0,3,2,0x80,1,0x80,0x80,0x80,0,3}),ShuffleBytes(seed,new byte[]{2,5,1,6,7,4,0,3,2,5,1,6,7,4,0,3}));
+        block=Xor(ShuffleLowWords(RotateDwords(block,27),0x1E),new byte[]{0x18,8,0x87,0x83,0xD8,0x98,0xDD,0xD8,0x18,8,0x87,0x83,0xD8,0x98,0xDD,0xD8});
+        block=RotateDwords(Xor(ShuffleLowWords(block,0x4B),new byte[]{0xDD,0xD8,0xD8,0x98,0x18,8,0x87,0x83,0,0,0,0,0,0,0,0}),5);
+        block=ShuffleBytes(block,new byte[]{6,2,0,7,0,0,0,0,0,0,0,0,0,0,0,0});return BitConverter.ToUInt32(block,0)^unchecked((uint)(RuntimeKey+0x6770EB9BUL));
+    }
+    static uint BlockHash(ulong address){uint h=unchecked(HP*BitOperations.RotateLeft((uint)address,16)+0x666AA9E5u);h=unchecked(HP*BitOperations.RotateLeft(h,23)+(uint)(address>>32)+0x666AA9E5u);h=unchecked(HP*BitOperations.RotateLeft(h,16)+0x666AA9E5u);h=unchecked(HP*(h>>9)+0x666AA9E5u);return h^(h>>16);}
 }
 
 public static class BitOperations {

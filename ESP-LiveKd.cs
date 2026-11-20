@@ -12,6 +12,7 @@ sealed class PlayerPoint {
     public double[] Position;
     public double Distance;
     public double Health=double.NaN,MaxHealth=double.NaN,Armor=double.NaN,MaxArmor=double.NaN;
+    public bool Body;
     public TargetData Target=new TargetData();
 }
 sealed class TimerResolution:IDisposable {
@@ -147,6 +148,7 @@ static class SceneDiscovery {
     static ulong Reverse64(ulong v){return ((v&0xFFUL)<<56)|((v&0xFF00UL)<<40)|((v&0xFF0000UL)<<24)|((v&0xFF000000UL)<<8)|((v>>8)&0xFF000000UL)|((v>>24)&0xFF0000UL)|((v>>40)&0xFF00UL)|(v>>56);}
 }
 sealed class EspReader {
+    sealed class BodyObservation {public double[] Position;public int Samples;public DateTime SeenUtc;}
     readonly TargetDataReader targetReader=new TargetDataReader(TargetReadProfile.Load(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"perfil-objetivos.json")),Memory.Bytes);
     public volatile bool Stop;
     public volatile bool Active=true;
@@ -159,6 +161,8 @@ sealed class EspReader {
     public int AxisConstraint=-1;
     ulong world,camera,controller,localPawn;
     readonly List<ulong> players=new List<ulong>();
+    readonly List<ulong> bodies=new List<ulong>();
+    readonly Dictionary<ulong,BodyObservation> bodyObservations=new Dictionary<ulong,BodyObservation>();
     readonly HashSet<ulong> states=new HashSet<ulong>();
     static bool Finite(double d) {return !double.IsNaN(d)&&!double.IsInfinity(d)&&Math.Abs(d)<100000000;}
     static bool ValidStat(double value,double maximum){return Finite(value)&&Finite(maximum)&&value>=0&&maximum>0&&maximum<=10000&&value<=maximum+1;}
@@ -176,26 +180,15 @@ sealed class EspReader {
         targetReader.Bind(Process.BaseAddress);
         ulong nextWorld=ResolveWorld();
         if(!Memory.Valid(nextWorld)) throw new Exception("Waiting for world");
-        world=nextWorld; camera=controller=localPawn=0;AxisConstraint=-1; players.Clear();states.Clear();
-        var candidates=new List<ulong>();
+        world=nextWorld; camera=controller=localPawn=0;AxisConstraint=-1; players.Clear();bodies.Clear();states.Clear();
         var actors=SceneDiscovery.CollectActors(world,Memory.Bytes,()=>Stop);
-        var cameras=new List<ulong>();var controllers=new List<ulong>();
-        foreach(ulong actor in actors) {
-            if(Stop)return;
-            try {
-                string name=GNames.GetActorName(actor);
-                if(name=="PlayerCameraManager") cameras.Add(actor);
-                else if(name.StartsWith("BP_PioneerPlayerController_C",StringComparison.Ordinal)) controllers.Add(actor);
-                else if(name.StartsWith("BP_PioneerPlayerState_C",StringComparison.Ordinal)) states.Add(actor);
-                else if(name.StartsWith("BP_PioneerCharacter_C",StringComparison.Ordinal)) candidates.Add(actor);
-            } catch(System.IO.IOException) {}
-        }
-        Discovery="Actors="+actors.Count+" (loaded levels); cameras="+cameras.Count+"; controllers="+controllers.Count+"; characters="+candidates.Count+"; states="+states.Count;
+        var controllers=new List<ulong>();
+        Discovery="Actors="+actors.Count+" (loaded levels)";
         controller=SceneDiscovery.FindLocalController(world,actors,controllers,Memory.Bytes);
         Discovery+="; local controller="+(controller!=0?"1":"0");
         if(controller==0) {ProcessDiagnosticRequest();return;}
         camera=CameraDiscovery.FindUnique(actors,controller,Memory.Bytes,()=>Stop);
-        Discovery+="; validated camera="+(camera!=0?"1":"0")+(cameras.Count==0&&camera!=0?" (owner)":"")+(camera==0?" (controller fallback)":"");
+        Discovery+="; validated camera="+(camera!=0?"1":"0")+(camera==0?" (controller fallback)":"");
         if(Memory.Valid(controller)) localPawn=Memory.Read<ulong>(controller+0x408);
         try {
             byte[] collections=Memory.Bytes(world+0x328,16);ulong collectionData=BitConverter.ToUInt64(collections,0);int collectionCount=BitConverter.ToInt32(collections,8);
@@ -207,11 +200,26 @@ sealed class EspReader {
                 }
             }
         } catch(System.IO.IOException) {}
-        foreach(ulong actor in candidates) {
-            if(Stop) return;
-            if(actor==localPawn) continue;
-            try {if(states.Contains(Memory.Read<ulong>(actor+0x3F0))) players.Add(actor);} catch(System.IO.IOException) {}
+        var liveBodies=new HashSet<ulong>();DateTime observedUtc=DateTime.UtcNow;
+        int bodyCandidates=0;
+        foreach(ulong actor in actors) {
+            if(Stop)return;if(actor==localPawn||players.Contains(actor))continue;
+            try {
+                if(Memory.Valid(Memory.Read<ulong>(actor+0x400)))continue;
+                ulong healthComponent=Memory.Read<ulong>(actor+0xD98);if(!Memory.Valid(healthComponent))continue;
+                double health=BitConverter.ToDouble(Memory.Bytes(healthComponent+0x708,8),0),maximum=BitConverter.ToDouble(Memory.Bytes(healthComponent+0x380,8),0);
+                if(!ValidStat(health,maximum)||health>.5||maximum<50||maximum>500)continue;
+                ulong root=Memory.Read<ulong>(actor+0x248);double[] position;
+                if(!Memory.Valid(root)||!Projection.TryWorldPosition(Memory.Bytes(root+0x390,0x60),out position))continue;
+                bodyCandidates++;
+                liveBodies.Add(actor);BodyObservation old;int samples=1;
+                if(bodyObservations.TryGetValue(actor,out old)&&(observedUtc-old.SeenUtc).TotalSeconds<=10&&DistanceSquared(position,old.Position)<=10000)samples=old.Samples+1;
+                bodyObservations[actor]=new BodyObservation{Position=position,Samples=samples,SeenUtc=observedUtc};
+                if(samples>=2)bodies.Add(actor);
+            } catch(System.IO.IOException) {}
         }
+        foreach(ulong actor in new List<ulong>(bodyObservations.Keys))if(!liveBodies.Contains(actor))bodyObservations.Remove(actor);
+        Discovery+="; body candidates="+bodyCandidates+"; stable bodies="+bodies.Count;
         AxisConstraint=-1;
         try {
             ulong instance=Memory.Read<ulong>(world+0x398);
@@ -224,6 +232,7 @@ sealed class EspReader {
         }catch(System.IO.IOException){}
         ProcessDiagnosticRequest();
     }
+    static double DistanceSquared(double[] a,double[] b){if(a==null||b==null)return double.MaxValue;double x=a[0]-b[0],y=a[1]-b[1],z=a[2]-b[2];return x*x+y*y+z*z;}
     void ProcessDiagnosticRequest() {
         string request=System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"calibrar-practica.request");
         if(System.IO.File.Exists(request)) {
@@ -364,6 +373,15 @@ sealed class EspReader {
                     }
                 } catch(System.IO.IOException) {}
                 frame.Players.Add(player);
+            } catch(System.IO.IOException) {}
+        }
+        foreach(ulong actor in bodies) {
+            if(Stop)return new EspFrame{Status="Closing"};
+            try {
+                ulong root=Memory.Read<ulong>(actor+0x248);double[] pos;
+                if(!Memory.Valid(root)||!Projection.TryWorldPosition(Memory.Bytes(root+0x390,0x60),out pos))continue;
+                double dx=pos[0]-frame.Location[0],dy=pos[1]-frame.Location[1],dz=pos[2]-frame.Location[2];double distance=Math.Sqrt(dx*dx+dy*dy+dz*dz)/100;
+                if(distance>=2&&distance<=2000)frame.Players.Add(new PlayerPoint{Actor=actor,Position=pos,Distance=distance,Health=0,MaxHealth=100,Body=true});
             } catch(System.IO.IOException) {}
         }
         frame.Valid=true; frame.Status="ESP: "+frame.Players.Count+" players read | F10: close";
@@ -549,7 +567,7 @@ sealed class EspWindow:Form {
     }
     static string VisibilityLabel(TargetVisibility value){return value==TargetVisibility.Clear?"head LOS":value==TargetVisibility.Occluded?"head occluded":"LOS ?";}
     static bool ValidStat(double value,double maximum){return !double.IsNaN(value)&&!double.IsInfinity(value)&&!double.IsNaN(maximum)&&!double.IsInfinity(maximum)&&value>=0&&maximum>0&&maximum<=10000&&value<=maximum+1;}
-    static bool IsDead(PlayerPoint player){return player!=null&&ValidStat(player.Health,player.MaxHealth)&&player.Health<=.5;}
+    static bool IsDead(PlayerPoint player){return player!=null&&(player.Body||ValidStat(player.Health,player.MaxHealth)&&player.Health<=.5);}
     static string PlayerStats(PlayerPoint player) {
         var parts=new List<string>();
         if(ValidStat(player.Health,player.MaxHealth))parts.Add("HP "+player.Health.ToString("F0")+"/"+player.MaxHealth.ToString("F0"));
