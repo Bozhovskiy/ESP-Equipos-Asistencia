@@ -544,9 +544,9 @@ sealed class EspWindow:Form {
                     continue;
                 }
                 box=SmoothPlayerBox(player.Actor,box);
-                if(settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,dead?deadPen:pen,box);}
-                DrawVitalBars(e.Graphics,player,box);
-                if(settings.Skeleton&&player.Target.BonesValid)DrawPose(e.Graphics,pen,player.Target,frame);
+                if(!dead&&settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,pen,box);}
+                if(!dead)DrawVitalBars(e.Graphics,player,box);
+                if(!dead&&settings.Skeleton&&player.Target.BonesValid)DrawPose(e.Graphics,pen,player.Target,frame);
                 if(dead)DrawPlayerLabel(e.Graphics,"DEAD"+(settings.Distances?" | "+player.Distance.ToString("F0")+" m":""),box,Color.FromArgb(255,110,110));
                 else if(settings.Distances)DrawPlayerLabel(e.Graphics,player.Distance.ToString("F0")+" m",box,Color.White);
                 drawn++;
