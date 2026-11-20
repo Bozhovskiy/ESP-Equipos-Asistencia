@@ -510,24 +510,27 @@ sealed class EspWindow:Form {
         paintedFrame=frame;paintedBounds=Bounds;
         paintedFresh=frame.IsFresh(Stopwatch.GetTimestamp());
         float labelY=20;
-        if(settings.Status){var statusBounds=DrawLabel(e.Graphics,(frame.Valid&&!paintedFresh?"Waiting for fresh data":frame.Status)+" | "+frame.TargetDataStatus+" | "+actualReadHz.ToString("F0")+" Hz | DELETE: menu",20,20);occupiedCards.Add(statusBounds);labelY=statusBounds.Bottom+8;}
+        int alive=0,bodies=0;foreach(var player in frame.Players){if(IsDead(player))bodies++;else alive++;}
+        var countBounds=DrawLabel(e.Graphics,"PLAYERS ON MAP: "+alive+" | BODIES: "+bodies,20,20);occupiedCards.Add(countBounds);labelY=countBounds.Bottom+8;
+        if(settings.Status){var statusBounds=DrawLabel(e.Graphics,(frame.Valid&&!paintedFresh?"Waiting for fresh data":frame.Status)+" | "+frame.TargetDataStatus+" | "+actualReadHz.ToString("F0")+" Hz | DELETE: menu",20,labelY);occupiedCards.Add(statusBounds);labelY=statusBounds.Bottom+8;}
         if(settings.Status)occupiedCards.Add(DrawLabel(e.Graphics,teamMessage+" | marked: "+teamFilter.Count+(!allyKeyRegistered||!clearKeyRegistered?" | Hotkey unavailable":""),20,labelY));
         if(!settings.Enabled)return;
         if(!frame.IsFresh(Stopwatch.GetTimestamp())) return;
-        if(settings.Radar){DrawRadar(e.Graphics,frame);occupiedCards.Add(RadarBounds());}
-        using(var outline=new Pen(Color.FromArgb(5,15,26),settings.BoxThickness+2f)) using(var pen=new Pen(settings.Color,settings.BoxThickness)) {
+        using(var outline=new Pen(Color.FromArgb(5,15,26),settings.BoxThickness+2f)) using(var pen=new Pen(settings.Color,settings.BoxThickness)) using(var deadPen=new Pen(Color.FromArgb(255,82,82),settings.BoxThickness)) {
             foreach(PlayerPoint player in frame.Players) {
-                if(!teamFilter.Show(player,settings.HideAllies,settings.HideUnknownTeams))continue;
+                bool dead=IsDead(player);
+                if(!dead&&!teamFilter.Show(player,settings.HideAllies,settings.HideUnknownTeams))continue;
                 if(player.Distance>settings.MaxDistance)continue;
                 RectangleF box;
                 if(!PlayerBoxGeometry.TryBox(player,frame,ClientSize.Width,ClientSize.Height,settings.FovAxis=="Vertical",out box)) {
                     continue;
                 }
                 box=SmoothPlayerBox(player.Actor,box);
-                if(settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,pen,box);}
+                if(settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,dead?deadPen:pen,box);}
                 DrawVitalBars(e.Graphics,player,box);
                 if(settings.Skeleton&&player.Target.BonesValid)DrawPose(e.Graphics,pen,player.Target,frame);
-                if(settings.Distances)DrawPlayerLabel(e.Graphics,player.Distance.ToString("F0")+" m",box);
+                if(dead)DrawPlayerLabel(e.Graphics,"DEAD"+(settings.Distances?" | "+player.Distance.ToString("F0")+" m":""),box,Color.FromArgb(255,110,110));
+                else if(settings.Distances)DrawPlayerLabel(e.Graphics,player.Distance.ToString("F0")+" m",box,Color.White);
                 drawn++;
             }
         }
@@ -546,6 +549,7 @@ sealed class EspWindow:Form {
     }
     static string VisibilityLabel(TargetVisibility value){return value==TargetVisibility.Clear?"head LOS":value==TargetVisibility.Occluded?"head occluded":"LOS ?";}
     static bool ValidStat(double value,double maximum){return !double.IsNaN(value)&&!double.IsInfinity(value)&&!double.IsNaN(maximum)&&!double.IsInfinity(maximum)&&value>=0&&maximum>0&&maximum<=10000&&value<=maximum+1;}
+    static bool IsDead(PlayerPoint player){return player!=null&&ValidStat(player.Health,player.MaxHealth)&&player.Health<=.5;}
     static string PlayerStats(PlayerPoint player) {
         var parts=new List<string>();
         if(ValidStat(player.Health,player.MaxHealth))parts.Add("HP "+player.Health.ToString("F0")+"/"+player.MaxHealth.ToString("F0"));
@@ -563,11 +567,11 @@ sealed class EspWindow:Form {
         float filled=bounds.Height*fraction;
         using(var brush=new SolidBrush(color))graphics.FillRectangle(brush,bounds.Left,bounds.Bottom-filled,bounds.Width,filled);
     }
-    void DrawPlayerLabel(Graphics graphics,string text,RectangleF box) {
+    void DrawPlayerLabel(Graphics graphics,string text,RectangleF box,Color color) {
         SizeF size=graphics.MeasureString(text,playerFont);float x=box.Left+(box.Width-size.Width)/2,y=box.Top-size.Height-3;
         x=Math.Max(2,Math.Min(x,ClientSize.Width-size.Width-2));y=Math.Max(2,Math.Min(y,ClientSize.Height-size.Height-2));
         using(var shadow=new SolidBrush(Color.FromArgb(190,5,15,26)))graphics.DrawString(text,playerFont,shadow,x+1,y+1);
-        graphics.DrawString(text,playerFont,Brushes.White,x,y);
+        using(var brush=new SolidBrush(color))graphics.DrawString(text,playerFont,brush,x,y);
     }
     void DrawPose(Graphics g,Pen pen,TargetData t,EspFrame frame){
         var points=new[]{t.Head,t.Chest,t.Pelvis,t.LeftFoot,t.RightFoot};int[] from={0,1,2,2},to={1,2,3,4};
