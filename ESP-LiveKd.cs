@@ -357,8 +357,8 @@ sealed class EspReader {
                 try {
                     ulong healthComponent=Memory.Read<ulong>(actor+0xD98);
                     if(Memory.Valid(healthComponent)) {
-                        double health=Memory.Read<double>(healthComponent+0x708),maxHealth=Memory.Read<double>(healthComponent+0x380);
-                        double armor=Memory.Read<double>(healthComponent+0x1D0),maxArmor=Memory.Read<double>(healthComponent+0x1D8);
+                        double health=BitConverter.ToDouble(Memory.Bytes(healthComponent+0x708,8),0),maxHealth=BitConverter.ToDouble(Memory.Bytes(healthComponent+0x380,8),0);
+                        double armor=BitConverter.ToDouble(Memory.Bytes(healthComponent+0x1D0,8),0),maxArmor=BitConverter.ToDouble(Memory.Bytes(healthComponent+0x1D8,8),0);
                         if(ValidStat(health,maxHealth)){player.Health=health;player.MaxHealth=maxHealth;}
                         if(ValidStat(armor,maxArmor)){player.Armor=armor;player.MaxArmor=maxArmor;}
                     }
