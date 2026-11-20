@@ -520,6 +520,7 @@ sealed class EspWindow:Form {
                 if(!PlayerBoxGeometry.TryBox(player,frame,ClientSize.Width,ClientSize.Height,settings.FovAxis=="Vertical",out box)) {
                     continue;
                 }
+                if(settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,pen,box);}
                 if(settings.Skeleton&&player.Target.BonesValid)DrawPose(e.Graphics,pen,player.Target,frame);
                 string stats=PlayerStats(player);
                 if(settings.Distances)stats+=(stats.Length>0?" | ":"")+player.Distance.ToString("F0")+" m";

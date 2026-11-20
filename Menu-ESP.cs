@@ -61,6 +61,7 @@ public sealed class EspMenu:Form {
         header.Controls.Add(title);
         var hide=new Button{Text="×",Location=new Point(352,12),Size=new Size(34,36),FlatStyle=FlatStyle.Flat,BackColor=header.BackColor,ForeColor=Color.White};hide.FlatAppearance.BorderSize=0;hide.Click+=(sender,e)=>Hide();header.Controls.Add(hide);Controls.Add(header);
         Toggle("ESP activado",settings.Enabled,v=>settings.Enabled=v);
+        Toggle("Player boxes",settings.Boxes,v=>settings.Boxes=v);
         Toggle("Hide confirmed or marked teammates",settings.HideAllies,v=>settings.HideAllies=v);
         Toggle("Also hide unknown teams",settings.HideUnknownTeams,v=>settings.HideUnknownTeams=v);
         Controls.Add(new Label{Text="F6: mark/unmark teammate under crosshair\nF7: clear marks for this session",Location=new Point(20,cursorY),Size=new Size(360,40),ForeColor=accent,Font=new Font("Segoe UI",4.5f)});cursorY+=46;
@@ -76,6 +77,7 @@ public sealed class EspMenu:Form {
         Toggle("Mostrar estado",settings.Status,v=>settings.Status=v);
         Number("Tamano de letra",settings.TextSize,6,20,1,v=>settings.TextSize=v);
         Number("Actualizacion (Hz)",settings.RefreshHz,20,60,5,v=>settings.RefreshHz=v);
+        Number("Box thickness",settings.BoxThickness,1,4,1,v=>settings.BoxThickness=v);
         Number("Maximum distance (m)",settings.MaxDistance,10,2000,10,v=>settings.MaxDistance=v);
         Number("Alcance del radar (m)",settings.RadarRange,10,1000,10,v=>settings.RadarRange=v);
         Number("Tamano del radar",settings.RadarRadius,60,140,5,v=>settings.RadarRadius=v);
@@ -84,6 +86,10 @@ public sealed class EspMenu:Form {
         var colors=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(245,cursorY),Size=new Size(135,30),BackColor=Color.FromArgb(35,43,55),ForeColor=Color.White,FlatStyle=FlatStyle.Flat};
         colors.Items.AddRange(new object[]{"Azul","Verde","Blanco","Amarillo","Violeta"});colors.SelectedItem=settings.BoxColor;if(colors.SelectedIndex<0)colors.SelectedIndex=0;
         colors.SelectedIndexChanged+=(sender,e)=>{settings.BoxColor=(string)colors.SelectedItem;Commit();};Controls.Add(colors);cursorY+=40;
+        Controls.Add(new Label{Text="Box style",Location=new Point(20,cursorY+4),AutoSize=true});
+        var styles=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(245,cursorY),Size=new Size(135,30),BackColor=colors.BackColor,ForeColor=Color.White,FlatStyle=FlatStyle.Flat};
+        styles.Items.AddRange(new object[]{"Esquinas","Completa","Laterales"});styles.SelectedItem=settings.BoxStyle;
+        styles.SelectedIndexChanged+=(sender,e)=>{settings.BoxStyle=(string)styles.SelectedItem;Commit();};Controls.Add(styles);cursorY+=40;
         Controls.Add(new Label{Text="Eje del FOV",Location=new Point(20,cursorY+4),AutoSize=true});
         var axes=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(245,cursorY),Size=new Size(135,30),BackColor=colors.BackColor,ForeColor=Color.White,FlatStyle=FlatStyle.Flat};
         axes.Items.AddRange(new object[]{"Horizontal","Vertical"});axes.SelectedItem=settings.FovAxis;axes.SelectedIndexChanged+=(sender,e)=>{settings.FovAxis=(string)axes.SelectedItem;Commit();};Controls.Add(axes);cursorY+=40;
