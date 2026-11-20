@@ -1,0 +1,4 @@
+local-prerequisites.json
+bin/
+obj/
+*.pdb

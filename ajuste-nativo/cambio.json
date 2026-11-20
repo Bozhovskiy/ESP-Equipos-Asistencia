@@ -1,0 +1,10 @@
+﻿{
+  "sourceSha256": "87b69a036772e58d6d9297982f6029d02ea0dbaf98c91f366e3fbb28f6045673",
+  "patchedSha256": "120145f081a2c96a8615a236e1181efbd73b4b868f76e78689d6a0558d8604c2",
+  "rva": "0x3c37",
+  "fileOffset": "0x3037",
+  "originalInstruction": "c7874825000001000000",
+  "patchedInstruction": "c7874825000000000000",
+  "bytesChanged": 1,
+  "scope": "LeechCore DeviceFile_Open core concurrency flag; game memory unchanged"
+}

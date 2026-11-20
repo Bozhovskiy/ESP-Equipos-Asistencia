@@ -1,0 +1,64 @@
+UC DOWNLOADS FORM
+
+File Name:
+ARC Raiders ESP Aim Assist 1.0 Final - Source and Binary
+
+Author:
+Virtualvirua (release maintainer)
+
+Forum Thread URL:
+Use the actual URL of your single release thread. A URL cannot be supplied until
+the thread exists. Do not paste an invented URL or the new-thread editor URL.
+
+Category:
+ARC Raiders, if that category is available in the form; otherwise select the
+appropriate game/tool category actually offered by UC Downloads.
+
+File to upload:
+ESP-Equipos-Asistencia.zip
+
+Description:
+[B]ARC Raiders ESP and Aim Assist — 1.0 Final[/B]
+
+One-time experimental source and binary snapshot of a C# external overlay.
+Includes the x64 project executables, complete managed source, build scripts,
+synthetic tests, documentation and version-pinned native source material.
+
+Features include ESP boxes, distances, radar, off-screen indicators, RMB aim
+assistance, independent X/Y movement calibration and manual teammate exclusions.
+The optional team/bone/visibility profile is disabled and unverified. Autofire
+requires authoritative target data and cannot operate from estimated boxes.
+
+Requires x64 Windows 11, .NET Framework 4.8, the x64 Visual C++ runtime and locally
+installed LiveKD 5.65, x64 Debugging Tools components and matching kernel symbols.
+Those Microsoft prerequisites are not bundled. No prerequisite downloader or
+updater is included. See README.md for local configuration and SOURCE-GUIDE.md
+for the implementation and its limitations.
+
+Current public-game compatibility and detection status are unverified. The
+functional synthetic suites pass; the recorded Windows timing test has an
+intermittent latency failure. The archive includes the validation record and
+the upstream license notices for its distributed native components.
+
+THREAD FORM
+
+Prefix:
+Release
+
+Title:
+ARC Raiders External ESP & Aim Assist - Final Source Release
+
+Message:
+Paste the complete contents of FORUM-POST.txt into the BBCode editor.
+
+Optional tags:
+arc raiders, external, esp, aim assist, csharp, source, release
+
+Before submitting the final public post:
+- Upload only the public release ZIP, not your private prerequisite folder.
+- Replace REPLACE_WITH_APPROVED_UC_DOWNLOAD_URL after staff approves the file.
+- Use the actual UC Downloads page URL; do not add external file mirrors.
+- Preview the post and check its lists and code block.
+- Publish this single release thread; do not create duplicate release posts.
+- Approval and acceptance are decisions for the forum staff. This preparation
+  does not imply that the file has been uploaded or approved.

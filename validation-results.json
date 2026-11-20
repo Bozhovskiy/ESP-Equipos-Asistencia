@@ -1,0 +1,339 @@
+﻿[
+    {
+        "name":  "AimCalibrationTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Independent axis calibration changes the requested movement",
+                       "PASS A calibrated step cannot exceed the remaining screen error",
+                       "PASS Feedback converges across asymmetric sensitivities and sample rates",
+                       "PASS Invalid runtime calibration pauses without sending movement",
+                       "PASS Repeated samples and release do not reuse calibrated movement",
+                       "PASS Reversing direction clears calibrated fractional movement",
+                       "PASS Old settings retain activation and use neutral calibration",
+                       "PASS Calibration survives save and reload independently",
+                       "PASS Out-of-range settings are normalized before reaching controls",
+                       "9 cases; 0 failures. Synthetic feedback only; no game memory or real input."
+                   ]
+    },
+    {
+        "name":  "AimPrecisionTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Adquiere cajas proyectadas a 100, 200 y 250 metros",
+                       "PASS La nueva geometria respeta el alcance configurado",
+                       "PASS Rechaza cajas degeneradas, demasiado pequenas o no finitas",
+                       "PASS Pecho estimado usa un punto distinto de cabeza",
+                       "PASS La altura personalizada cambia cabeza y no desplaza pecho",
+                       "PASS Pecho validado conserva la proyeccion del hueso",
+                       "PASS Cajas pequenas conservan exclusiones de equipo, LOS y huesos",
+                       "PASS Corrige un error de 2.6 pixels sin quedarse fuera del centro",
+                       "PASS Converge con realimentacion a 20, 30 y 60 Hz",
+                       "PASS No acumula un salto lateral para un error menor de un pixel",
+                       "PASS Intervalos irregulares convergen sin saltos ni inversion",
+                       "PASS Un frame repetido no vuelve a mover ni acumula correcciones",
+                       "12 casos; 0 fallos. Modelo sintetico, sin lectura del juego ni entrada real."
+                   ]
+    },
+    {
+        "name":  "SceneDiscoveryTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Actor in a loaded sublevel participates in discovery",
+                       "PASS Missing loaded-level array preserves main level",
+                       "PASS Invalid actor pointers are discarded",
+                       "PASS Changing actor header rejects that level",
+                       "PASS Malformed streaming level does not discard main actors",
+                       "PASS Cancellation publishes no partial actor list",
+                       "PASS Authoritative local controller selected among multiple names",
+                       "PASS Controller can be identified without actor name",
+                       "PASS Multiple local controllers stay ambiguous",
+                       "PASS Missing local array retains unique named fallback",
+                       "PASS Fallback rejects multiple named controllers",
+                       "PASS Local pointer must be present in discovered actors",
+                       "PASS Changing game instance during owner read rejects old controller",
+                       "PASS Changing local player list during owner read rejects old controller",
+                       "PASS Incomplete known local chain never falls back to remote name",
+                       "Fallos: 0. Memoria sintetica, sin lectura del juego."
+                   ]
+    },
+    {
+        "name":  "AimDiagnosticsTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Known teammate has its own rejection reason",
+                       "PASS Missing team is distinguished from missing bones",
+                       "PASS Missing bones is diagnosed when strict bones required",
+                       "PASS Unknown line of sight is diagnosed independently",
+                       "PASS Known obstruction stays excluded in estimated mode",
+                       "PASS Estimated candidate reports success without claiming verified bones",
+                       "PASS Offscreen geometry has a separate reason",
+                       "PASS Invalid frame is not reported as no enemy",
+                       "PASS Repeated invalid discovery retries promptly",
+                       "Fallos: 0. Sin lectura del juego ni entrada real."
+                   ]
+    },
+    {
+        "name":  "TeamFilterTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Confirmed teammate excluded from shared display filter",
+                       "PASS Unknown team remains labelled unknown",
+                       "PASS Strict display suppresses unknown",
+                       "PASS Manual teammate exclusion also overrides enemy target data",
+                       "PASS Same hotkey reverses manual mark",
+                       "PASS Overlapping players are not guessed",
+                       "PASS Stale frame cannot mark teammate",
+                       "PASS Player outside crosshair cannot be marked",
+                       "PASS Changing world clears marks",
+                       "PASS Changing local pawn clears marks",
+                       "PASS Absent actors expire before address reuse",
+                       "PASS Clear removes manual exclusions",
+                       "PASS Marked teammate never yields an aim candidate",
+                       "PASS Estimated profile produces aim movement with RMB",
+                       "Fallos: 0. Sin lectura del juego ni entrada real."
+                   ]
+    },
+    {
+        "name":  "TargetValidationTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Unknown team does not pass strict enemy filter",
+                       "PASS Known ally is excluded even in estimated mode",
+                       "PASS Known occlusion is excluded even in estimated mode",
+                       "PASS Unknown visibility does not pass strict visibility filter",
+                       "PASS Confirmed enemy with line of sight is accepted",
+                       "PASS Estimated mode explicitly accepts unknown data",
+                       "PASS Bone translation composes with component translation",
+                       "PASS Bone translation rotates with component quaternion",
+                       "PASS Malformed bone quaternion is rejected",
+                       "PASS Nonfinite bone coordinate is rejected",
+                       "PASS Coherent pose accepted",
+                       "PASS Collapsed skeleton rejected",
+                       "PASS Oversized skeleton rejected",
+                       "PASS Distance priority chooses nearer eligible actor",
+                       "PASS Screen priority preserves nearest crosshair",
+                       "PASS Exact screen tie prefers distance before address",
+                       "PASS Distance priority cannot acquire outside radius",
+                       "PASS Malformed profile cannot enable reads",
+                       "PASS New settings enable strict checks",
+                       "PASS Visibility expiring during calculation blocks input",
+                       "PASS Fresh visibility permits input",
+                       "PASS Unverified autofire decisions are blocked",
+                       "Fallos: 0. Sin lectura del juego ni entrada real."
+                   ]
+    },
+    {
+        "name":  "TargetReaderTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Team classification works without a bone layout",
+                       "PASS Changing team during sample remains unknown",
+                       "PASS Verified synthetic build reads enemy, visibility and world bones",
+                       "PASS Build mismatch never enables metadata",
+                       "PASS Disabled profile does not read memory",
+                       "PASS Failed rebind revokes previously enabled reader",
+                       "PASS Equal authoritative team ids classify ally",
+                       "PASS Invalid team id remains unknown",
+                       "PASS Visibility belongs to local camera",
+                       "PASS Stale raycast remains unknown",
+                       "PASS Future raycast remains unknown",
+                       "PASS Render flag never substitutes for raycast",
+                       "PASS Raycast reports head occluded and chest clear separately",
+                       "PASS Out of range bone index rejects pose",
+                       "PASS Capacity mismatch rejects pose",
+                       "PASS Partial bone read rejects pose",
+                       "PASS Pose header changing during read rejects pose",
+                       "PASS Head projection uses bone instead of estimated box",
+                       "PASS Visible chest selected when head is occluded",
+                       "PASS Missing profile keeps unknown data and blocks strict targeting",
+                       "PASS Settings preserve checks, selected bone and priority",
+                       "PASS Malformed profile disables without terminating: {\"PeTimestamp\":4294967296}",
+                       "PASS Malformed profile disables without terminating: {\"HeadIndex\":2147483648}",
+                       "PASS Malformed profile disables without terminating: {\"PeTimestamp\":-1}",
+                       "PASS Malformed profile disables without terminating: {\"HeadIndex\":\"invalid\"}",
+                       "PASS Missing chest visibility does not invalidate confirmed head",
+                       "PASS Chest IO failure does not discard head observation",
+                       "Fallos: 0. Memoria sintetica; sin entrada real."
+                   ]
+    },
+    {
+        "name":  "AssistTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS No se envia si la lectura envejecio durante el calculo",
+                       "PASS Punto de caja calculado sin huesos",
+                       "PASS Caja fuera de pantalla o no finita descartada",
+                       "PASS Seleccion cercana y movimiento relativo limitado",
+                       "PASS Inicio con Alt pulsado exige soltar",
+                       "PASS Soltar Alt detiene incluso con el mismo frame",
+                       "PASS Bloqueo: apagado",
+                       "PASS Bloqueo: sin foco",
+                       "PASS Bloqueo: menu",
+                       "PASS Bloqueo: caducado",
+                       "PASS Bloqueo: invalido",
+                       "PASS Bloqueo: edad negativa",
+                       "PASS Bloqueo: edad NaN",
+                       "PASS Bloqueo: pausa larga",
+                       "PASS Bloqueo: tiempo hacia atras",
+                       "PASS Frame repetido no vuelve a enviar movimiento",
+                       "PASS Objetivo perdido no cambia a otro mientras Alt sigue pulsado",
+                       "PASS Objetivos fuera de zona y distancia no se seleccionan",
+                       "PASS Zona muerta evita deriva subpixel",
+                       "PASS Velocidad acotada e independiente del ritmo de frames",
+                       "PASS Rechazo de entrada no se reintenta hasta soltar",
+                       "PASS Modo continuo actua sin Alt y no mueve al iniciar",
+                       "PASS Modo continuo pausa con menu y recupera solo con datos validos",
+                       "PASS Modo continuo mantiene un bloqueo de entrada hasta desactivar",
+                       "PASS Modo continuo pierde objetivo y rearma sin salto inmediato",
+                       "PASS Revalidacion acepta continuo sin Alt y mantiene foco y edad",
+                       "PASS Pausa continua no reutiliza un frame ya consumido",
+                       "PASS Rechazo continuo no se rearma con cajas apagadas ni cambio a modo Alt",
+                       "PASS Ajustes de respuesta y altura desplazan el punto como se solicita",
+                       "29 aprobadas; 0 fallidas. No se envio entrada al sistema."
+                   ]
+    },
+    {
+        "name":  "ImprovedAssistTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Retiene el objetivo en el margen de seguimiento",
+                       "PASS El margen no amplia la seleccion inicial",
+                       "PASS Empate de seleccion no depende del orden del lector",
+                       "PASS Invertir direccion elimina el residuo anterior",
+                       "PASS Caja parcialmente visible se conserva en el borde",
+                       "PASS Perfil continuo antiguo exige mantener boton al migrar",
+                       "Fallos: 0. Sin lectura del juego ni entrada real."
+                   ]
+    },
+    {
+        "name":  "AutoFireTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS Confirma el mismo objetivo durante 60 ms",
+                       "PASS No dispara inmediatamente ni fuera del radio",
+                       "PASS No dispara con una correccion pendiente",
+                       "PASS Respeta intervalo entre clics",
+                       "PASS No reutiliza una lectura para confirmar ni disparar",
+                       "PASS Cambio de actor reinicia confirmacion",
+                       "PASS Detencion: boton",
+                       "PASS Detencion: foco",
+                       "PASS Detencion: menu",
+                       "PASS Detencion: edad",
+                       "PASS Detencion: frame",
+                       "PASS Detencion: apagado",
+                       "PASS Detencion: NaN",
+                       "PASS Detencion: sin objetivo",
+                       "PASS Detencion: pausa",
+                       "PASS Detencion: retroceso",
+                       "PASS Detencion: dimensiones",
+                       "PASS Rechazo bloquea hasta soltar el boton",
+                       "PASS Clic parcial libera el boton izquierdo",
+                       "PASS Telemetria cuenta pulsacion parcial y liberacion aceptadas",
+                       "PASS Clic completo no genera entrada adicional",
+                       "PASS Liberacion pendiente se conserva y reintenta sin pulsar de nuevo",
+                       "PASS Radio menor que zona muerta se normaliza al guardar",
+                       "PASS Rechazo completo no libera un boton que no pulso",
+                       "PASS Autofire apagado tras reinicio y ajustes conservados",
+                       "Fallos: 0. No se envio entrada real."
+                   ]
+    },
+    {
+        "name":  "AssistGeometryTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: caja y punto comparten proyeccion horizontal/vertical; coordenadas invalidas descartadas. No se inicio lector ni se envio entrada."
+                   ]
+    },
+    {
+        "name":  "NormalMouseTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: paquete x64 de movimiento relativo, sin clics ni rueda; argumentos invalidos rechazados. No se llamo a SendInput."
+                   ]
+    },
+    {
+        "name":  "AssistSettingsTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: perfil anterior compatible, limites saneados y activacion solicitada conservada; exige clic derecho."
+                   ]
+    },
+    {
+        "name":  "CameraDiscoveryTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: camara sin nombre; propietario, POV, raiz, ambiguedad y cierre validados."
+                   ]
+    },
+    {
+        "name":  "FrameFreshnessTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: edad de datos, datos invalidos y tiempo monotono."
+                   ]
+    },
+    {
+        "name":  "RefreshCadenceTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: cadencia descuenta IO y mantiene pausa ante lecturas lentas."
+                   ]
+    },
+    {
+        "name":  "ReaderRetryTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: lectura fallida espera antes de repetir y termina limpiamente."
+                   ]
+    },
+    {
+        "name":  "ProjectionTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: centro, profundidad, giro, FOV invalido y derecha."
+                   ]
+    },
+    {
+        "name":  "FovAxisTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: FOV vertical y camara inclinada con coordenadas esperadas."
+                   ]
+    },
+    {
+        "name":  "WorldPositionTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: origen mundial de componente unido, rechazo de quaternion, NaN y bloque parcial."
+                   ]
+    },
+    {
+        "name":  "RadarTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: radar delante, derecha, giro y limite de alcance."
+                   ]
+    },
+    {
+        "name":  "EdgeIndicatorTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: derecha, izquierda, arriba, detras, giro y rechazo de NaN."
+                   ]
+    },
+    {
+        "name":  "RadarLayoutTests",
+        "exitCode":  0,
+        "output":  [
+                       "PASS: radar arriba de vida y dentro de margenes con configuraciones extremas."
+                   ]
+    },
+    {
+        "name":  "TimerResolutionTests",
+        "exitCode":  0,
+        "output":  [
+                       "Temporizador ms/espera: antes=30.51 activo=17.46 liberado=29.97",
+                       "PASS: temporizador nativo activado, medido y liberado sin adquisicion."
+                   ]
+    }
+]

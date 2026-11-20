@@ -1,0 +1,15 @@
+Project source files are supplied with this experimental release for inspection,
+building and study. This notice does not assign a new license or ownership claim
+to imported project code whose original licensing has not been established.
+Retain any original copyright and attribution notices when reusing that code.
+
+Third-party components have separate licenses:
+- MemProcFS: AGPL-3.0; runtime/LICENSE.txt and the supplied upstream source tree.
+- LeechCore: GPL-3.0; ajuste-nativo/LICENSE-LeechCore.txt and modified source tree.
+- LZ4: its included upstream license notice.
+
+LiveKD, Microsoft Debugging Tools, Visual C++ runtime files and kernel symbols
+are external local prerequisites and are not distributed in this archive.
+
+Release maintainer: Virtualvirua.
+Third-party authors and original notices remain those of their respective owners.

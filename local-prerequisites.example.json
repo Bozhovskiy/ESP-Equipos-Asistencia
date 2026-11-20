@@ -1,0 +1,5 @@
+{
+  "LiveKdPath": "C:\\Tools\\LiveKD\\livekd64.exe",
+  "KernelSymbolDirectory": "C:\\Tools\\WindowsSymbols\\CurrentKernel",
+  "DebuggingToolsDirectory": "C:\\Tools\\DebuggingTools\\x64"
+}

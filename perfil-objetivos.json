@@ -1,0 +1,22 @@
+{
+  "Enabled": false,
+  "PeTimestamp": 0,
+  "ImageSize": 0,
+  "PawnStateOffset": -1,
+  "TeamIdOffset": -1,
+  "MeshOffset": -1,
+  "BoneArrayOffset": -1,
+  "ComponentTransformOffset": -1,
+  "HeadIndex": -1,
+  "ChestIndex": -1,
+  "PelvisIndex": -1,
+  "LeftFootIndex": -1,
+  "RightFootIndex": -1,
+  "BoneSpace": "Component",
+  "VisibilitySource": "",
+  "WorldTimeOffset": -1,
+  "VisibilityTimeOffset": -1,
+  "VisibilityObserverOffset": -1,
+  "HeadVisibilityOffset": -1,
+  "ChestVisibilityOffset": -1
+}

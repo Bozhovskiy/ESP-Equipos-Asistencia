@@ -1,0 +1,48 @@
+﻿{
+    "release":  "1.0-final",
+    "releaseDate":  "2026-10-12",
+    "espSha256":  "51612495288629FE55F2E9E0FA868A4D4C51E1CC20EF2A78397A9F64607E4FC8",
+    "launcherSha256":  "9932253ADBEE9023919E406D4D2F65EEC89050C4023208DC539363877BEE2AEC",
+    "prerequisites":  {
+                          "bundled":  false,
+                          "livekdSha256":  "e2884fa2baa44a092fc7e8a6fe59fc02af754ff18b1e10ecaebd91a7097d5fb9",
+                          "livekdVersion":  "5.65"
+                      },
+    "runtimeFiles":  [
+                         {
+                             "sha256":  "6485608FB7751A372D0CB7B0C31F071F91CCF9F14C8C10D419B113AB563ED6AB",
+                             "name":  "info.db"
+                         },
+                         {
+                             "sha256":  "120145F081A2C96A8615A236E1181EFBD73B4B868F76E78689D6A0558D8604C2",
+                             "name":  "leechcore.dll"
+                         },
+                         {
+                             "sha256":  "8486A10C4393CEE1C25392769DDD3B2D6C242D6EC7928E1414EFFF7DFB2F07EF",
+                             "name":  "LICENSE.txt"
+                         },
+                         {
+                             "sha256":  "986271B75ADF846DD6A213FBC17C768C419200B61331725E13FAFBECF7DAE810",
+                             "name":  "license_info_all.txt"
+                         },
+                         {
+                             "sha256":  "8B58C446121A109CCF32EDC094BBA3010A3D85E4EE3702950DB55E4D3E87736C",
+                             "name":  "license_lz4.txt"
+                         },
+                         {
+                             "sha256":  "B15E8F8931B75221D7B140FA5788DB9304102C63ECADA3495EAC12349A3D2B23",
+                             "name":  "tinylz4.dll"
+                         },
+                         {
+                             "sha256":  "1BFA5E308F18B61D38F9471AAD5D2801410CAE608E3E274242E7E788838A12DF",
+                             "name":  "vmm.dll"
+                         }
+                     ],
+    "nativeFileReadsSerialized":  true,
+    "targetOffsetsVerified":  false,
+    "gameSessionVerified":  false,
+    "autoFireRequiresConfirmedTarget":  true,
+    "calibrationMode":  "manual-linear-per-axis",
+    "memprocfsSourceCommit":  "2e85ff7edc3772e24bce28bdc4cccb744a8b2456",
+    "validationDocument":  "VALIDATION.md"
+}

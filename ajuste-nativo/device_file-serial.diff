@@ -1,0 +1,14 @@
+--- a/leechcore/device_file.c
++++ b/leechcore/device_file.c
+@@ -965,8 +965,11 @@
+     // try upgrade to multi-threaded access:
+     if(!fopen_su(&ctx->File[1].h, ctx->szFileName, (ctxLC->Config.fWritable ? "r+b" : "rb"))) {
+         // 2nd file handle successfully opened - upgrade to multi-threaded access.
+-        ctxLC->fMultiThread = TRUE;
++        // Local modification, 2026-10-11: the contiguous read context used by
++        // LiveKd is shared. Keep the LeechCore context lock enabled so all File
++        // reads obey ReadScatterGather's single-thread requirement.
++        ctxLC->fMultiThread = FALSE;
+         ctx->fMultiThreaded = TRUE;
+         InitializeCriticalSection(&ctx->File[1].Lock);
+         for(i = 2; i < FILE_MAX_THREADS; i++) {
