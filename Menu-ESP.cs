@@ -14,7 +14,7 @@ public sealed class EspSettings {
     public bool Skeleton=true;
     public bool RadarNorthUp=false,RadarAutoZoom=true,RadarLabels=true,RadarAltitude=true,RadarBorder=true,RadarHeadingTick=true;
     public int TextSize=12,MaxDistance=1000,RadarRange=300;
-    public int RefreshHz=60,BoxThickness=2,RadarRadius=110,RadarBottomGap=230;
+    public int RefreshHz=120,BoxThickness=2,RadarRadius=110,RadarBottomGap=230;
     public string BoxColor="Azul";
     public string BoxStyle="Esquinas";
     public string FovAxis="Horizontal";
@@ -26,7 +26,7 @@ public sealed class EspSettings {
             var value=serializer.ConvertToType<EspSettings>(profile);
             if(value==null)return new EspSettings();
             value.TextSize=Math.Max(6,Math.Min(20,value.TextSize));value.MaxDistance=Math.Max(10,Math.Min(2000,value.MaxDistance));value.RadarRange=Math.Max(10,Math.Min(1000,value.RadarRange));
-            value.RefreshHz=Math.Max(20,Math.Min(60,value.RefreshHz));value.BoxThickness=Math.Max(1,Math.Min(4,value.BoxThickness));value.RadarRadius=Math.Max(60,Math.Min(140,value.RadarRadius));value.RadarBottomGap=Math.Max(120,Math.Min(450,value.RadarBottomGap));
+            value.RefreshHz=Math.Max(20,Math.Min(120,value.RefreshHz));value.BoxThickness=Math.Max(1,Math.Min(4,value.BoxThickness));value.RadarRadius=Math.Max(60,Math.Min(140,value.RadarRadius));value.RadarBottomGap=Math.Max(120,Math.Min(450,value.RadarBottomGap));
             if(value.BoxStyle!="Completa"&&value.BoxStyle!="Laterales")value.BoxStyle="Esquinas";
             if(value.FovAxis!="Vertical")value.FovAxis="Horizontal";
             return value;
@@ -76,7 +76,7 @@ public sealed class EspMenu:Form {
         Toggle("Radar heading tick",settings.RadarHeadingTick,v=>settings.RadarHeadingTick=v);
         Toggle("Mostrar estado",settings.Status,v=>settings.Status=v);
         Number("Tamano de letra",settings.TextSize,6,20,1,v=>settings.TextSize=v);
-        Number("Actualizacion (Hz)",settings.RefreshHz,20,60,5,v=>settings.RefreshHz=v);
+        Number("Refresh rate (Hz)",settings.RefreshHz,20,120,5,v=>settings.RefreshHz=v);
         Number("Box thickness",settings.BoxThickness,1,4,1,v=>settings.BoxThickness=v);
         Number("Maximum distance (m)",settings.MaxDistance,10,2000,10,v=>settings.MaxDistance=v);
         Number("Alcance del radar (m)",settings.RadarRange,10,1000,10,v=>settings.RadarRange=v);

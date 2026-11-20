@@ -150,7 +150,7 @@ sealed class EspReader {
     readonly TargetDataReader targetReader=new TargetDataReader(TargetReadProfile.Load(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"perfil-objetivos.json")),Memory.Bytes);
     public volatile bool Stop;
     public volatile bool Active=true;
-    public volatile int ReadHz=60;
+    public volatile int ReadHz=120;
     public long ReadCount;
     public double ReadMilliseconds,DiscoveryMilliseconds;
     public volatile EspFrame Frame=new EspFrame();
@@ -386,7 +386,7 @@ sealed class EspReader {
             Thread.Sleep(Active?RemainingDelay(ReadHz,cycle.Elapsed.TotalMilliseconds):250);
         }
     }
-    public static int RemainingDelay(int hz,double elapsed){return Math.Max(1,(int)Math.Ceiling(1000.0/Math.Max(20,Math.Min(60,hz))-elapsed));}
+    public static int RemainingDelay(int hz,double elapsed){return Math.Max(1,(int)Math.Ceiling(1000.0/Math.Max(20,Math.Min(120,hz))-elapsed));}
     public static int RediscoveryDelay(bool valid){return valid?3000:250;}
 }
 sealed class EspWindow:Form {
@@ -428,7 +428,7 @@ sealed class EspWindow:Form {
         BackColor=Color.Magenta;TransparencyKey=Color.Magenta;DoubleBuffered=true;
         UpdateFont();
         menu=new EspMenu(settings,()=>{UpdateFont();Invalidate();},()=>Close());
-        timer.Interval=16;timer.Tick+=Tick;timer.Start();
+        timer.Interval=8;timer.Tick+=Tick;timer.Start();
         IntPtr ensured=Handle;
     }
     protected override bool ShowWithoutActivation {get{return true;}}
@@ -463,7 +463,7 @@ sealed class EspWindow:Form {
         timerResolution.SetActive(gameFocused&&settings.Enabled);
         reader.Active=gameFocused&&settings.Enabled;
         reader.ReadHz=settings.RefreshHz;
-        timer.Interval=gameFocused?16:250;
+        timer.Interval=gameFocused?8:250;
         if(Visible!=gameFocused)Visible=gameFocused;
         bool wantsInsert=gameFocused||GetForegroundWindow()==menu.Handle;
         if(wantsInsert&&!insertRegistered)insertRegistered=RegisterHotKey(Handle,2,0x4000,0x2E);
