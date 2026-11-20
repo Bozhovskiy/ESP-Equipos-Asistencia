@@ -83,9 +83,9 @@ static class SceneDiscovery {
     static List<ulong> Pointers(Func<ulong,int,byte[]> read,ulong address,int limit,bool truncate=false){
         var header=Block(read,address,16);ulong data=BitConverter.ToUInt64(header,0);
         int count=BitConverter.ToInt32(header,8),capacity=BitConverter.ToInt32(header,12);
-        if(count<0||capacity<count||capacity>100000||!truncate&&count>limit||count>0&&!Memory.Valid(data))throw new System.IO.IOException("Array de escena incoherente");
+        if(count<0||capacity<count||capacity>100000||!truncate&&count>limit||count>0&&!Memory.Valid(data))throw new System.IO.IOException("Inconsistent scene array");
         int take=Math.Min(count,limit);var bytes=take==0?new byte[0]:Block(read,data,take*8);
-        var after=Block(read,address,16);for(int i=0;i<16;i++)if(header[i]!=after[i])throw new System.IO.IOException("Array de escena cambio durante lectura");
+        var after=Block(read,address,16);for(int i=0;i<16;i++)if(header[i]!=after[i])throw new System.IO.IOException("Scene array changed during reading");
         var result=new List<ulong>();for(int i=0;i<take;i++){ulong pointer=BitConverter.ToUInt64(bytes,i*8);if(Memory.Valid(pointer))result.Add(pointer);}return result;
     }
     public static List<ulong> CollectActors(ulong world,Func<ulong,int,byte[]> read,Func<bool> stopping){
@@ -339,12 +339,12 @@ sealed class EspReader {
             if(!Memory.Valid(localRoot)||!Projection.TryWorldPosition(Memory.Bytes(localRoot+0x390,0x60),out origin)){frame.Status="Waiting for local transform";return frame;}
             frame.Location=new[]{origin[0],origin[1],origin[2]+70.0};frame.Rotation=Triple(Memory.Bytes(controller+0x448,24),0);frame.Fov=90;frame.DesiredFov=90;frame.AspectRatio=0;
         }
-        if(!(frame.Fov>10 && frame.Fov<170)) {frame.Status="Camara sin FOV valido";return frame;}
-        foreach(double d in frame.Location) if(!Finite(d)) {frame.Status="Camara sin posicion valida";return frame;}
-        foreach(double d in frame.Rotation) if(!Finite(d)||Math.Abs(d)>360) {frame.Status="Camara sin rotacion valida";return frame;}
+        if(!(frame.Fov>10 && frame.Fov<170)) {frame.Status="Camera has no valid FOV";return frame;}
+        foreach(double d in frame.Location) if(!Finite(d)) {frame.Status="Camera has no valid position";return frame;}
+        foreach(double d in frame.Rotation) if(!Finite(d)||Math.Abs(d)>360) {frame.Status="Camera has no valid rotation";return frame;}
         if(Memory.Valid(camera))try {ulong root=Memory.Read<ulong>(camera+0x248);byte[] transform=Memory.Bytes(root+0x280,48);frame.CameraRootLocation=Triple(transform,0);frame.CameraRootRotation=Triple(transform,24);}catch(System.IO.IOException){}
         foreach(ulong actor in players) {
-            if(Stop) return new EspFrame{Status="Cerrando"};
+            if(Stop) return new EspFrame{Status="Closing"};
             if(actor==localPawn) continue;
             try {
                 ulong root=Memory.Read<ulong>(actor+0x248);
@@ -482,7 +482,7 @@ sealed class EspWindow:Form {
         displayFrame=reader.Frame;
         int previousMarks=teamFilter.Count;
         teamFilter.Update(displayFrame,Stopwatch.GetTimestamp());
-        if(previousMarks>teamFilter.Count)teamMessage="Marcas actualizadas: cambio de escena o actores ausentes";
+        if(previousMarks>teamFilter.Count)teamMessage="Marks updated: scene changed or actors disappeared";
         if(gameFocused&&(!ReferenceEquals(paintedFrame,displayFrame)||paintedBounds!=Bounds||paintedFresh!=displayFrame.IsFresh(Stopwatch.GetTimestamp())))Invalidate();
         if(DateTime.UtcNow>=nextReport) {
             var f=displayFrame;
@@ -511,7 +511,7 @@ sealed class EspWindow:Form {
         paintedFresh=frame.IsFresh(Stopwatch.GetTimestamp());
         float labelY=20;
         if(settings.Status){var statusBounds=DrawLabel(e.Graphics,(frame.Valid&&!paintedFresh?"Waiting for fresh data":frame.Status)+" | "+frame.TargetDataStatus+" | "+actualReadHz.ToString("F0")+" Hz | DELETE: menu",20,20);occupiedCards.Add(statusBounds);labelY=statusBounds.Bottom+8;}
-        if(settings.Status)occupiedCards.Add(DrawLabel(e.Graphics,teamMessage+" | marcados: "+teamFilter.Count+(!allyKeyRegistered||!clearKeyRegistered?" | Tecla ocupada":""),20,labelY));
+        if(settings.Status)occupiedCards.Add(DrawLabel(e.Graphics,teamMessage+" | marked: "+teamFilter.Count+(!allyKeyRegistered||!clearKeyRegistered?" | Hotkey unavailable":""),20,labelY));
         if(!settings.Enabled)return;
         if(!frame.IsFresh(Stopwatch.GetTimestamp())) return;
         if(settings.Radar){DrawRadar(e.Graphics,frame);occupiedCards.Add(RadarBounds());}
@@ -589,9 +589,9 @@ sealed class EspWindow:Form {
         return new RectangleF(x-3,y-2,size.Width+8,size.Height+4);
     }
     void DrawBox(Graphics graphics,Pen pen,RectangleF b) {
-        if(settings.BoxStyle=="Completa"){graphics.DrawRectangle(pen,b.X,b.Y,b.Width,b.Height);return;}
+        if(settings.BoxStyle=="Full"){graphics.DrawRectangle(pen,b.X,b.Y,b.Width,b.Height);return;}
         float a=Math.Min(b.Width*.32f,25),t=Math.Min(b.Height*.22f,29);
-        if(settings.BoxStyle=="Laterales")t=b.Height;
+        if(settings.BoxStyle=="Sides")t=b.Height;
         foreach(float x in new[]{b.Left,b.Right})foreach(float y in new[]{b.Top,b.Bottom}) {
             graphics.DrawLine(pen,x,y,x+(x==b.Left?a:-a),y);
             graphics.DrawLine(pen,x,y,x,y+(y==b.Top?t:-t));

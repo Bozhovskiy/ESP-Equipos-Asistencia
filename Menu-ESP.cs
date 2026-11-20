@@ -15,10 +15,10 @@ public sealed class EspSettings {
     public bool RadarNorthUp=false,RadarAutoZoom=true,RadarLabels=true,RadarAltitude=true,RadarBorder=true,RadarHeadingTick=true;
     public int TextSize=12,MaxDistance=1000,RadarRange=300;
     public int RefreshHz=120,BoxThickness=2,RadarRadius=110,RadarBottomGap=230;
-    public string BoxColor="Azul";
-    public string BoxStyle="Esquinas";
+    public string BoxColor="Blue";
+    public string BoxStyle="Corners";
     public string FovAxis="Horizontal";
-    public Color Color {get {switch(BoxColor){case "Verde":return Color.FromArgb(114,231,196);case "Blanco":return Color.FromArgb(233,244,252);case "Amarillo":return Color.FromArgb(255,202,116);case "Violeta":return Color.FromArgb(231,172,255);default:return Color.FromArgb(100,201,255);}}}
+    public Color Color {get {switch(BoxColor){case "Green":return Color.FromArgb(114,231,196);case "White":return Color.FromArgb(233,244,252);case "Yellow":return Color.FromArgb(255,202,116);case "Violet":return Color.FromArgb(231,172,255);default:return Color.FromArgb(100,201,255);}}}
     public static EspSettings Load() {
         try {
             var serializer=new JavaScriptSerializer();
@@ -27,7 +27,9 @@ public sealed class EspSettings {
             if(value==null)return new EspSettings();
             value.TextSize=Math.Max(6,Math.Min(20,value.TextSize));value.MaxDistance=Math.Max(10,Math.Min(2000,value.MaxDistance));value.RadarRange=Math.Max(10,Math.Min(1000,value.RadarRange));
             value.RefreshHz=Math.Max(20,Math.Min(120,value.RefreshHz));value.BoxThickness=Math.Max(1,Math.Min(4,value.BoxThickness));value.RadarRadius=Math.Max(60,Math.Min(140,value.RadarRadius));value.RadarBottomGap=Math.Max(120,Math.Min(450,value.RadarBottomGap));
-            if(value.BoxStyle!="Completa"&&value.BoxStyle!="Laterales")value.BoxStyle="Esquinas";
+            if(value.BoxColor=="Azul")value.BoxColor="Blue";else if(value.BoxColor=="Verde")value.BoxColor="Green";else if(value.BoxColor=="Blanco")value.BoxColor="White";else if(value.BoxColor=="Amarillo")value.BoxColor="Yellow";else if(value.BoxColor=="Violeta")value.BoxColor="Violet";
+            if(value.BoxStyle=="Completa")value.BoxStyle="Full";else if(value.BoxStyle=="Laterales")value.BoxStyle="Sides";else if(value.BoxStyle=="Esquinas")value.BoxStyle="Corners";
+            if(value.BoxStyle!="Full"&&value.BoxStyle!="Sides")value.BoxStyle="Corners";
             if(value.FovAxis!="Vertical")value.FovAxis="Horizontal";
             return value;
         }catch{return new EspSettings();}
@@ -48,24 +50,24 @@ public sealed class EspMenu:Form {
     readonly EspSettings settings;
     readonly Action changed,closeEsp;
     readonly Color accent=Color.FromArgb(85,215,255);
-    readonly Font menuFont=new Font("Segoe UI",5.5f,FontStyle.Regular);
+    readonly Font menuFont=new Font("Segoe UI",9f,FontStyle.Regular);
     int cursorY=83;
     public EspMenu(EspSettings value,Action update,Action close) {
         settings=value;changed=update;closeEsp=close;
-        Text="ESP · Ajustes de superposicion";Size=new Size(400,745);FormBorderStyle=FormBorderStyle.None;
+        Text="ESP · Overlay Settings";Size=new Size(400,745);FormBorderStyle=FormBorderStyle.None;
         AutoScroll=true;AutoScrollMinSize=new Size(380,745);
         BackColor=Color.FromArgb(21,25,33);ForeColor=Color.White;Font=menuFont;TopMost=true;ShowInTaskbar=false;StartPosition=FormStartPosition.Manual;
         var header=new Panel{Location=new Point(0,0),Size=new Size(400,65),BackColor=Color.FromArgb(30,37,49)};
         header.MouseDown+=(sender,e)=>{if(e.Button==MouseButtons.Left){ReleaseCapture();SendMessage(Handle,0xA1,new IntPtr(2),IntPtr.Zero);}};
-        var title=new Label{Text="ESP  /  AJUSTES",Location=new Point(20,20),AutoSize=true,ForeColor=accent};
+        var title=new Label{Text="ESP  /  SETTINGS",Location=new Point(20,20),AutoSize=true,ForeColor=accent,Font=new Font("Segoe UI",10f,FontStyle.Bold)};
         header.Controls.Add(title);
         var hide=new Button{Text="×",Location=new Point(352,12),Size=new Size(34,36),FlatStyle=FlatStyle.Flat,BackColor=header.BackColor,ForeColor=Color.White};hide.FlatAppearance.BorderSize=0;hide.Click+=(sender,e)=>Hide();header.Controls.Add(hide);Controls.Add(header);
-        Toggle("ESP activado",settings.Enabled,v=>settings.Enabled=v);
+        Toggle("ESP enabled",settings.Enabled,v=>settings.Enabled=v);
         Toggle("Player boxes",settings.Boxes,v=>settings.Boxes=v);
         Toggle("Hide confirmed or marked teammates",settings.HideAllies,v=>settings.HideAllies=v);
         Toggle("Also hide unknown teams",settings.HideUnknownTeams,v=>settings.HideUnknownTeams=v);
-        Controls.Add(new Label{Text="F6: mark/unmark teammate under crosshair\nF7: clear marks for this session",Location=new Point(20,cursorY),Size=new Size(360,40),ForeColor=accent,Font=new Font("Segoe UI",4.5f)});cursorY+=46;
-        Toggle("Postura de huesos validados",settings.Skeleton,v=>settings.Skeleton=v);
+        Controls.Add(new Label{Text="F6: mark/unmark teammate under crosshair\nF7: clear marks for this session",Location=new Point(20,cursorY),Size=new Size(360,40),ForeColor=accent,Font=new Font("Segoe UI",7.5f)});cursorY+=46;
+        Toggle("Validated skeleton pose",settings.Skeleton,v=>settings.Skeleton=v);
         Toggle("Distances",settings.Distances,v=>settings.Distances=v);
         Toggle("Radar · left side, above health",settings.Radar,v=>settings.Radar=v);
         Toggle("Radar north-up (off = player-up)",settings.RadarNorthUp,v=>settings.RadarNorthUp=v);
@@ -74,27 +76,27 @@ public sealed class EspMenu:Form {
         Toggle("Radar altitude indicators",settings.RadarAltitude,v=>settings.RadarAltitude=v);
         Toggle("Radar border and range rings",settings.RadarBorder,v=>settings.RadarBorder=v);
         Toggle("Radar heading tick",settings.RadarHeadingTick,v=>settings.RadarHeadingTick=v);
-        Toggle("Mostrar estado",settings.Status,v=>settings.Status=v);
-        Number("Tamano de letra",settings.TextSize,6,20,1,v=>settings.TextSize=v);
+        Toggle("Show status",settings.Status,v=>settings.Status=v);
+        Number("Text size",settings.TextSize,6,20,1,v=>settings.TextSize=v);
         Number("Refresh rate (Hz)",settings.RefreshHz,20,120,5,v=>settings.RefreshHz=v);
         Number("Box thickness",settings.BoxThickness,1,4,1,v=>settings.BoxThickness=v);
         Number("Maximum distance (m)",settings.MaxDistance,10,2000,10,v=>settings.MaxDistance=v);
-        Number("Alcance del radar (m)",settings.RadarRange,10,1000,10,v=>settings.RadarRange=v);
-        Number("Tamano del radar",settings.RadarRadius,60,140,5,v=>settings.RadarRadius=v);
-        Number("Altura del radar",settings.RadarBottomGap,120,450,10,v=>settings.RadarBottomGap=v);
+        Number("Radar range (m)",settings.RadarRange,10,1000,10,v=>settings.RadarRange=v);
+        Number("Radar size",settings.RadarRadius,60,140,5,v=>settings.RadarRadius=v);
+        Number("Radar bottom offset",settings.RadarBottomGap,120,450,10,v=>settings.RadarBottomGap=v);
         var colorLabel=new Label{Text="Player color",Location=new Point(20,cursorY+4),AutoSize=true};Controls.Add(colorLabel);
         var colors=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(245,cursorY),Size=new Size(135,30),BackColor=Color.FromArgb(35,43,55),ForeColor=Color.White,FlatStyle=FlatStyle.Flat};
-        colors.Items.AddRange(new object[]{"Azul","Verde","Blanco","Amarillo","Violeta"});colors.SelectedItem=settings.BoxColor;if(colors.SelectedIndex<0)colors.SelectedIndex=0;
+        colors.Items.AddRange(new object[]{"Blue","Green","White","Yellow","Violet"});colors.SelectedItem=settings.BoxColor;if(colors.SelectedIndex<0)colors.SelectedIndex=0;
         colors.SelectedIndexChanged+=(sender,e)=>{settings.BoxColor=(string)colors.SelectedItem;Commit();};Controls.Add(colors);cursorY+=40;
         Controls.Add(new Label{Text="Box style",Location=new Point(20,cursorY+4),AutoSize=true});
         var styles=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(245,cursorY),Size=new Size(135,30),BackColor=colors.BackColor,ForeColor=Color.White,FlatStyle=FlatStyle.Flat};
-        styles.Items.AddRange(new object[]{"Esquinas","Completa","Laterales"});styles.SelectedItem=settings.BoxStyle;
+        styles.Items.AddRange(new object[]{"Corners","Full","Sides"});styles.SelectedItem=settings.BoxStyle;
         styles.SelectedIndexChanged+=(sender,e)=>{settings.BoxStyle=(string)styles.SelectedItem;Commit();};Controls.Add(styles);cursorY+=40;
-        Controls.Add(new Label{Text="Eje del FOV",Location=new Point(20,cursorY+4),AutoSize=true});
+        Controls.Add(new Label{Text="FOV axis",Location=new Point(20,cursorY+4),AutoSize=true});
         var axes=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(245,cursorY),Size=new Size(135,30),BackColor=colors.BackColor,ForeColor=Color.White,FlatStyle=FlatStyle.Flat};
         axes.Items.AddRange(new object[]{"Horizontal","Vertical"});axes.SelectedItem=settings.FovAxis;axes.SelectedIndexChanged+=(sender,e)=>{settings.FovAxis=(string)axes.SelectedItem;Commit();};Controls.Add(axes);cursorY+=40;
-        var quit=new Button{Text="Cerrar ESP  ·  F10",Location=new Point(20,cursorY+55),Size=new Size(360,36),FlatStyle=FlatStyle.Flat,BackColor=Color.FromArgb(35,43,55),ForeColor=Color.White};quit.FlatAppearance.BorderColor=Color.FromArgb(62,76,96);quit.Click+=(sender,e)=>closeEsp();Controls.Add(quit);
-        Controls.Add(new Label{Text="DELETE opens or closes this menu",Location=new Point(20,cursorY+105),AutoSize=true,ForeColor=accent,Font=new Font("Segoe UI",4.5f)});
+        var quit=new Button{Text="Close ESP  ·  F10",Location=new Point(20,cursorY+55),Size=new Size(360,36),FlatStyle=FlatStyle.Flat,BackColor=Color.FromArgb(35,43,55),ForeColor=Color.White};quit.FlatAppearance.BorderColor=Color.FromArgb(62,76,96);quit.Click+=(sender,e)=>closeEsp();Controls.Add(quit);
+        Controls.Add(new Label{Text="DELETE opens or closes this menu",Location=new Point(20,cursorY+105),AutoSize=true,ForeColor=accent,Font=new Font("Segoe UI",7.5f)});
         AutoScrollMinSize=new Size(380,cursorY+150);
     }
     void Toggle(string text,bool initial,Action<bool> set) {
