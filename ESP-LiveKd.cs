@@ -407,6 +407,7 @@ sealed class EspWindow:Form {
     EspMenu menu;
     Font overlayFont;
     Font detailFont;
+    Font playerFont;
     DateTime nextReport=DateTime.MinValue;
     bool gameFocused;
     bool insertRegistered;
@@ -453,7 +454,7 @@ sealed class EspWindow:Form {
         }
         base.WndProc(ref m);
     }
-    void UpdateFont(){if(overlayFont!=null)overlayFont.Dispose();if(detailFont!=null)detailFont.Dispose();overlayFont=new Font("Segoe UI",Math.Max(3f,settings.TextSize/2f),FontStyle.Bold,GraphicsUnit.Point);detailFont=new Font("Segoe UI",Math.Max(3f,(settings.TextSize-1)/2f),FontStyle.Regular,GraphicsUnit.Point);}
+    void UpdateFont(){if(overlayFont!=null)overlayFont.Dispose();if(detailFont!=null)detailFont.Dispose();if(playerFont!=null)playerFont.Dispose();overlayFont=new Font("Segoe UI",Math.Max(3f,settings.TextSize/2f),FontStyle.Bold,GraphicsUnit.Point);detailFont=new Font("Segoe UI",Math.Max(3f,(settings.TextSize-1)/2f),FontStyle.Regular,GraphicsUnit.Point);playerFont=new Font("Segoe UI",Math.Max(3f,settings.TextSize/4f),FontStyle.Bold,GraphicsUnit.Point);}
     void Tick(object sender,EventArgs e) {
         string stopRequest=System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"cerrar-esp.request");
         if(System.IO.File.Exists(stopRequest)){try{System.IO.File.Delete(stopRequest);}catch(System.IO.IOException){}catch(UnauthorizedAccessException){}Close();return;}
@@ -524,10 +525,9 @@ sealed class EspWindow:Form {
                 }
                 box=SmoothPlayerBox(player.Actor,box);
                 if(settings.Boxes){DrawBox(e.Graphics,outline,box);DrawBox(e.Graphics,pen,box);}
+                DrawVitalBars(e.Graphics,player,box);
                 if(settings.Skeleton&&player.Target.BonesValid)DrawPose(e.Graphics,pen,player.Target,frame);
-                string stats=PlayerStats(player);
-                if(settings.Distances)stats+=(stats.Length>0?" | ":"")+player.Distance.ToString("F0")+" m";
-                if(stats.Length>0)DrawCard(e.Graphics,stats,box);
+                if(settings.Distances)DrawPlayerLabel(e.Graphics,player.Distance.ToString("F0")+" m",box);
                 drawn++;
             }
         }
@@ -551,6 +551,23 @@ sealed class EspWindow:Form {
         if(ValidStat(player.Health,player.MaxHealth))parts.Add("HP "+player.Health.ToString("F0")+"/"+player.MaxHealth.ToString("F0"));
         if(ValidStat(player.Armor,player.MaxArmor))parts.Add("Armor "+player.Armor.ToString("F0")+"/"+player.MaxArmor.ToString("F0"));
         return string.Join(" | ",parts.ToArray());
+    }
+    void DrawVitalBars(Graphics graphics,PlayerPoint player,RectangleF box) {
+        const float width=3,gap=4;float height=Math.Max(3,box.Height);
+        if(ValidStat(player.Health,player.MaxHealth))DrawVitalBar(graphics,new RectangleF(box.Left-gap-width,box.Top,width,height),(float)(player.Health/player.MaxHealth),Color.FromArgb(76,225,112));
+        if(ValidStat(player.Armor,player.MaxArmor))DrawVitalBar(graphics,new RectangleF(box.Right+gap,box.Top,width,height),(float)(player.Armor/player.MaxArmor),Color.FromArgb(76,174,255));
+    }
+    static void DrawVitalBar(Graphics graphics,RectangleF bounds,float fraction,Color color) {
+        fraction=Math.Max(0,Math.Min(1,fraction));
+        using(var background=new SolidBrush(Color.FromArgb(170,5,15,26)))graphics.FillRectangle(background,bounds);
+        float filled=bounds.Height*fraction;
+        using(var brush=new SolidBrush(color))graphics.FillRectangle(brush,bounds.Left,bounds.Bottom-filled,bounds.Width,filled);
+    }
+    void DrawPlayerLabel(Graphics graphics,string text,RectangleF box) {
+        SizeF size=graphics.MeasureString(text,playerFont);float x=box.Left+(box.Width-size.Width)/2,y=box.Top-size.Height-3;
+        x=Math.Max(2,Math.Min(x,ClientSize.Width-size.Width-2));y=Math.Max(2,Math.Min(y,ClientSize.Height-size.Height-2));
+        using(var shadow=new SolidBrush(Color.FromArgb(190,5,15,26)))graphics.DrawString(text,playerFont,shadow,x+1,y+1);
+        graphics.DrawString(text,playerFont,Brushes.White,x,y);
     }
     void DrawPose(Graphics g,Pen pen,TargetData t,EspFrame frame){
         var points=new[]{t.Head,t.Chest,t.Pelvis,t.LeftFoot,t.RightFoot};int[] from={0,1,2,2},to={1,2,3,4};
