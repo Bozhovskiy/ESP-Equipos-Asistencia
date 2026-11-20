@@ -13,7 +13,7 @@ try {
     # Verify only loads the library and resolves exports; it never initializes
     # the acquisition device, starts LiveKD, or sends mouse input.
     if($Mode -eq 'Verify'){
-        $check=Start-Process -FilePath $probe -ArgumentList '--verify' -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -Wait
+        $check=Start-Process -FilePath $probe -ArgumentList '--verify' -WindowStyle Hidden -PassThru -Wait
         if($check.ExitCode -ne 0){throw 'Native-export verification failed. Check the local x64 Visual C++ runtime.'}
         $report.status='verified';$report.acquisitionStarted=$false
     } else {
@@ -44,7 +44,7 @@ try {
             $env:PATH=$debuggingDirectory+';'+$env:PATH
             $env:_NT_SYMBOL_PATH=$symbolDirectory;$env:_NT_ALT_SYMBOL_PATH=''
             $report.status='running';$report | ConvertTo-Json | Set-Content -LiteralPath $resultPath -Encoding UTF8
-            $process=Start-Process -FilePath $exe -WorkingDirectory $PSScriptRoot -ArgumentList ('-accepteula -b -vsym -k "'+$probe+'"') -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput (Join-Path $PSScriptRoot 'livekd-output.txt') -RedirectStandardError (Join-Path $PSScriptRoot 'livekd-error.txt')
+            $process=Start-Process -FilePath $exe -ArgumentList ('-accepteula -b -vsym -k "'+$probe+'"') -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput (Join-Path $PSScriptRoot 'livekd-output.txt') -RedirectStandardError (Join-Path $PSScriptRoot 'livekd-error.txt')
             $report.status='finished';$report.exitCode=$process.ExitCode
         } finally {$env:PATH=$previousPath;$env:_NT_SYMBOL_PATH=$previousSymbols;$env:_NT_ALT_SYMBOL_PATH=$previousAlternate}
     }

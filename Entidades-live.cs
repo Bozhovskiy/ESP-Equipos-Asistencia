@@ -56,8 +56,8 @@ public static class MemProcFsHeaderProbe {
 
 public static class GNames
 {
-    private const ulong NamesOffset = 0x10B779F0;
-    private const ulong KeyTableOffset = 0x10A1425C;
+    private const ulong NamesOffset = 0x1049FAC0;
+    private const ulong KeyTableOffset = 0x103692BC;
  
     private const uint HP = 0x01000193;
     private const ulong FnvPrime = 0x100000001B3UL;

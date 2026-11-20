@@ -34,8 +34,8 @@ static class CameraDiscovery {
             if(stopping()||clock.ElapsedMilliseconds>250||seen.Count>=8192)return 0;
             if(!Memory.Valid(actor)||!seen.Add(actor))continue;
             try {
-                if(BitConverter.ToUInt64(Block(read,actor+0x428,8),0)!=controller)continue;
-                byte[] pov=Block(read,actor+0xE20,0x54);
+                if(BitConverter.ToUInt64(Block(read,actor+0x438,8),0)!=controller)continue;
+                byte[] pov=Block(read,actor+0xDE0,0x54);
                 float fov=BitConverter.ToSingle(pov,0x50);if(!(fov>10&&fov<170))continue;
                 ulong root=BitConverter.ToUInt64(Block(read,actor+0x248,8),0);if(!Memory.Valid(root))continue;
                 byte[] origin=Block(read,root+0x280,24);
@@ -86,9 +86,9 @@ static class SceneDiscovery {
     }
     public static List<ulong> CollectActors(ulong world,Func<ulong,int,byte[]> read,Func<bool> stopping){
         var actors=new List<ulong>();if(stopping())return actors;
-        ulong main=Pointer(read,world+0x128);if(!Memory.Valid(main))throw new System.IO.IOException("Esperando nivel principal");
+        ulong main=Reverse64(Pointer(read,world+0x118)^0x2BFF037800000000UL);if(!Memory.Valid(main))throw new System.IO.IOException("Esperando nivel principal");
         var levels=new List<ulong>{main};var seenLevels=new HashSet<ulong>{main};
-        try{foreach(ulong level in Pointers(read,world+0x470,128))if(seenLevels.Add(level))levels.Add(level);}catch(System.IO.IOException){}
+        try{foreach(ulong level in Pointers(read,world+0x288,128))if(seenLevels.Add(level))levels.Add(level);}catch(System.IO.IOException){}
         var seen=new HashSet<ulong>();
         foreach(ulong level in levels){
             if(stopping())return new List<ulong>();
@@ -102,7 +102,7 @@ static class SceneDiscovery {
         var present=new HashSet<ulong>(actors);var localControllers=new HashSet<ulong>();
         bool localChainAvailable=false;
         try{
-            ulong instance=Pointer(read,world+0x4a8);if(!Memory.Valid(instance))throw new System.IO.IOException("Instancia no disponible");
+            ulong instance=Pointer(read,world+0x360);if(!Memory.Valid(instance))throw new System.IO.IOException("Instancia no disponible");
             var locals=Pointers(read,instance+0xf8,4);localChainAvailable=true;
             var owners=new List<ulong>();
             foreach(ulong local in locals){
@@ -111,7 +111,7 @@ static class SceneDiscovery {
                 owners.Add(owner);
                 if(present.Contains(owner))localControllers.Add(owner);
             }
-            if(Pointer(read,world+0x4a8)!=instance)return 0;
+            if(Pointer(read,world+0x360)!=instance)return 0;
             var after=Pointers(read,instance+0xf8,4);if(after.Count!=locals.Count)return 0;
             for(int i=0;i<locals.Count;i++)if(after[i]!=locals[i]||Pointer(read,locals[i]+0xa0)!=owners[i])return 0;
             if(localControllers.Count==1)foreach(ulong value in localControllers)return value;
@@ -123,6 +123,7 @@ static class SceneDiscovery {
             return 0;
         }
     }
+    static ulong Reverse64(ulong v){return ((v&0xFFUL)<<56)|((v&0xFF00UL)<<40)|((v&0xFF0000UL)<<24)|((v&0xFF000000UL)<<8)|((v>>8)&0xFF000000UL)|((v>>24)&0xFF0000UL)|((v>>40)&0xFF00UL)|(v>>56);}
 }
 sealed class EspReader {
     readonly TargetDataReader targetReader=new TargetDataReader(TargetReadProfile.Load(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"perfil-objetivos.json")),Memory.Bytes);
@@ -144,7 +145,7 @@ sealed class EspReader {
     static double[] Triple(byte[] b,int o) {return new double[]{BitConverter.ToDouble(b,o),BitConverter.ToDouble(b,o+8),BitConverter.ToDouble(b,o+16)};}
     void Refresh() {
         targetReader.Bind(Process.BaseAddress);
-        ulong nextWorld=Memory.Read<ulong>(Memory.Read<ulong>(Process.BaseAddress+0x10A22A98));
+        ulong nextWorld=Memory.Read<ulong>(Memory.Read<ulong>(Memory.Read<ulong>(Memory.Read<ulong>(Process.BaseAddress+0x108FEEC0)+0xA0)+0x250)+0x160);
         if(!Memory.Valid(nextWorld)) throw new Exception("Esperando mundo");
         world=nextWorld; camera=controller=localPawn=0;AxisConstraint=-1; players.Clear();practiceTurrets.Clear();states.Clear();
         var candidates=new List<ulong>();
@@ -168,7 +169,7 @@ sealed class EspReader {
         camera=CameraDiscovery.FindUnique(actors,controller,Memory.Bytes,()=>Stop);
         Discovery+="; camara validada="+(camera!=0?"1":"0")+(cameras.Count==0&&camera!=0?" (propietario)":"");
         if(camera==0){ProcessDiagnosticRequest();return;}
-        if(Memory.Valid(controller)) localPawn=Memory.Read<ulong>(controller+0x428);
+        if(Memory.Valid(controller)) localPawn=Memory.Read<ulong>(controller+0x438);
         foreach(ulong actor in candidates) {
             if(Stop) return;
             if(actor==localPawn) continue;
@@ -176,7 +177,7 @@ sealed class EspReader {
         }
         AxisConstraint=-1;
         try {
-            ulong instance=Memory.Read<ulong>(world+0x4A8);
+            ulong instance=Memory.Read<ulong>(world+0x360);
             foreach(ulong local in PointerArray(instance+0xF8,4)) {
                 if(Memory.Read<ulong>(local+0xA0)==controller) {
                     int axis=Memory.Bytes(local+0x228,1)[0];
@@ -211,7 +212,7 @@ sealed class EspReader {
         var cameraPovs=new List<object>();
         string cameraScanError="";
         try {
-            double[] reference=Triple(Memory.Bytes(camera+0xE28,24),0);
+            double[] reference=Triple(Memory.Bytes(camera+0xDE8,24),0);
             for(int chunk=0;chunk<0x4800&&!Stop&&clock.ElapsedMilliseconds<=1200;chunk+=0x400) {
               byte[] bytes;
               try{bytes=Memory.Bytes(camera+(ulong)chunk,0x500);}catch(System.IO.IOException error){cameraScanError=error.Message;continue;}
@@ -229,9 +230,9 @@ sealed class EspReader {
         var transforms=new List<object>();
         foreach(ulong actor in new[]{camera,localPawn})if(!Stop&&clock.ElapsedMilliseconds<=1200&&Memory.Valid(actor))try{transforms.Add(InspectTransform(actor,true));}catch(System.IO.IOException){}
         foreach(ulong actor in practiceTurrets){if(Stop||clock.ElapsedMilliseconds>1200||transforms.Count>=8)break;try{transforms.Add(InspectTransform(actor,false));}catch(System.IO.IOException){}}
-        var levels=new HashSet<ulong>{Memory.Read<ulong>(world+0x128)};
+        var levels=new HashSet<ulong>{Memory.Valid(world)?SceneDiscoveryPersistentLevel(world):0};
         string levelsError="";
-        try {foreach(ulong level in PointerArray(world+0x470,128))levels.Add(level);}catch(System.IO.IOException error){levelsError=error.Message;}
+        try {foreach(ulong level in PointerArray(world+0x288,128))levels.Add(level);}catch(System.IO.IOException error){levelsError=error.Message;}
         var items=new List<object>();var seen=new HashSet<ulong>();
         int failed=0;bool limited=false;
         foreach(ulong level in levels) {
@@ -246,9 +247,9 @@ sealed class EspReader {
                         bool cameraOwnerMatch=false,povPlausible=false;
                         double[] povLocation=null,povRotation=null;float povFov=0;
                         if(Memory.Valid(controller))try {
-                            cameraOwnerMatch=Memory.Read<ulong>(actor+0x428)==controller;
+                            cameraOwnerMatch=Memory.Read<ulong>(actor+0x438)==controller;
                             if(cameraOwnerMatch) {
-                                byte[] pov=Memory.Bytes(actor+0xE20,0x54);
+                                byte[] pov=Memory.Bytes(actor+0xDE0,0x54);
                                 povLocation=Triple(pov,8);povRotation=Triple(pov,0x30);povFov=BitConverter.ToSingle(pov,0x50);
                                 povPlausible=povFov>10&&povFov<170;
                                 foreach(double d in povLocation)povPlausible&=Finite(d);
@@ -266,6 +267,7 @@ sealed class EspReader {
         var report=new {timestampUtc=DateTime.UtcNow.ToString("o"),levels=levels.Count,levelsError,limited,failed,elapsedMs=clock.ElapsedMilliseconds,axisConstraint=AxisConstraint,cameraScanError,cameraPovs,transforms,actors=items};
         System.IO.File.WriteAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"diagnostico-escena.json"),new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(report));
     }
+    static ulong SceneDiscoveryPersistentLevel(ulong value){ulong v=Memory.Read<ulong>(value+0x118)^0x2BFF037800000000UL;return ((v&0xFFUL)<<56)|((v&0xFF00UL)<<40)|((v&0xFF0000UL)<<24)|((v&0xFF000000UL)<<8)|((v>>8)&0xFF000000UL)|((v>>24)&0xFF0000UL)|((v>>40)&0xFF00UL)|(v>>56);}
     object InspectTransform(ulong actor,bool requireMatch) {
         ulong root=Memory.Read<ulong>(actor+0x248);
         byte[] block=Memory.Bytes(root,0x700);double[] relative=Triple(block,0x280);
@@ -290,10 +292,10 @@ sealed class EspReader {
         frame.TargetDataStatus=targetReader.Status;
         if(!Memory.Valid(controller)) {frame.Status="Esperando controlador local";return frame;}
         if(!Memory.Valid(camera)) {frame.Status="Esperando camara";return frame;}
-        localPawn=Memory.Read<ulong>(controller+0x428);
+        localPawn=Memory.Read<ulong>(controller+0x438);
         if(!Memory.Valid(localPawn)) {frame.Status="Esperando personaje local";return frame;}
         frame.World=world;frame.LocalPawn=localPawn;
-        byte[] pov=Memory.Bytes(camera+0xE10+0x10,0xA8);
+        byte[] pov=Memory.Bytes(camera+0xDD0+0x10,0xA8);
         frame.Location=Triple(pov,8);frame.Rotation=Triple(pov,0x30);frame.Fov=BitConverter.ToSingle(pov,0x50);
         frame.AspectRatio=BitConverter.ToSingle(pov,0x94);frame.DesiredFov=BitConverter.ToSingle(pov,0x64);
         if(!(frame.Fov>10 && frame.Fov<170)) {frame.Status="Camara sin FOV valido";return frame;}
